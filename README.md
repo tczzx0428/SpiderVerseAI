@@ -103,26 +103,38 @@ zip 包必须包含：
 ```
 PE_Space/
 ├── backend/
-│   ├── alembic/versions/   # 数据库迁移脚本
+│   ├── alembic/versions/       # 数据库迁移脚本
 │   ├── app/
-│   │   ├── models/         # SQLAlchemy 模型 (User, App, AppView, Config)
-│   │   ├── routers/        # API 路由 (auth, apps, admin, stats, config, prompts)
-│   │   ├── services/       # traefik_service, docker_service
-│   │   └── utils/          # security, etc.
+│   │   ├── core/               # 纯业务逻辑，零外部依赖
+│   │   │   ├── entities/       # 业务实体定义
+│   │   │   ├── ports/          # 数据库/外部服务抽象接口
+│   │   │   ├── usecases/       # 业务逻辑（auth, app, admin, stats, history...）
+│   │   │   └── strategies/     # 策略模式实现（认证、运行时）
+│   │   ├── infra/              # 基础设施层，实现 port 接口
+│   │   │   ├── db/             # SQLAlchemy 模型 + repo 实现
+│   │   │   ├── services/       # Docker 运行时、Nginx 路由管理
+│   │   │   ├── storage/        # 文件系统存储
+│   │   │   └── auth/           # JWT 实现
+│   │   ├── api/                # HTTP 接入层（薄适配器）
+│   │   │   ├── routes/         # 路由（auth, apps, admin, stats, config, prompts）
+│   │   │   ├── schemas/        # Pydantic 请求/响应模型
+│   │   │   └── middleware/     # CORS、统一错误处理
+│   │   ├── container.py        # 依赖注入，组装所有依赖
+│   │   └── main.py
 │   └── Dockerfile
 ├── frontend/
 │   ├── src/
 │   │   ├── pages/
-│   │   │   ├── admin/      # UserManagePage, TemplateManagePage, StatsPage
-│   │   │   └── ...         # HomePage, AppsListPage, AppDetailPage, HistoryPage
-│   │   ├── api/            # axios client + typed API wrappers
-│   │   └── store/          # authStore (Zustand)
+│   │   │   ├── admin/          # UserManagePage, TemplateManagePage, StatsPage
+│   │   │   └── ...             # HomePage, AppsListPage, AppDetailPage, HistoryPage
+│   │   ├── api/                # axios client + typed API wrappers
+│   │   └── store/              # authStore (Zustand)
 │   └── Dockerfile
 ├── traefik/
-│   ├── traefik.yml         # 静态配置
+│   ├── traefik.yml             # 静态配置
 │   └── dynamic/
-│       ├── base.yml        # 后端/前端路由 + pe-auth ForwardAuth 中间件
-│       └── app_*.yml       # 每个运行中应用的动态路由（自动生成）
+│       ├── base.yml            # 后端/前端路由 + pe-auth ForwardAuth 中间件
+│       └── app_*.yml           # 每个运行中应用的动态路由（自动生成）
 ├── docker-compose.yml
 └── .env.example
 ```
