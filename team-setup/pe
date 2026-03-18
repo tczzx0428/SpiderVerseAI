@@ -127,6 +127,89 @@ def lookup_user_id(id_or_username: str) -> int:
     print(f"❌ 找不到用户: {id_or_username}")
     sys.exit(1)
 
+# ── AI 配置同步 ──────────────────────────────────────────────────────────────
+def _sync_ai_config(url: str, token: str):
+    """从后端拉取团队 AI 配置并写入 Codex / OpenClaw / Skills"""
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 拉取 team-config
+    tc = requests.get(f"{url}/api/auth/team-config", headers=headers, timeout=10)
+    if tc.status_code != 200:
+        print(f"⚠️  获取 team-config 失败: {tc.status_code}")
+        return
+    tc_data = tc.json()
+    api_key        = tc_data.get("api_key", "")
+    base_url       = tc_data.get("base_url", "")
+    codex_model    = tc_data.get("codex_model", "gpt-5.2-codex")
+    openclaw_model = tc_data.get("openclaw_model", "gpt-5.2")
+
+    if not api_key:
+        print("⚠️  服务器未配置 TEAM_API_KEY，跳过")
+        return
+
+    # 写 Codex 配置
+    codex_dir = Path.home() / ".codex"
+    codex_dir.mkdir(exist_ok=True)
+    (codex_dir / "auth.json").write_text(
+        json.dumps({"OPENAI_API_KEY": api_key}))
+    (codex_dir / "config.toml").write_text(
+        f'model_provider = "team"\n'
+        f'model = "{codex_model}"\n'
+        f'model_reasoning_effort = "high"\n'
+        f'disable_response_storage = true\n'
+        f'preferred_auth_method = "apikey"\n\n'
+        f'[model_providers.team]\n'
+        f'name = "team"\n'
+        f'base_url = "{base_url}"\n'
+        f'wire_api = "responses"\n'
+    )
+
+    # 写 OpenClaw 配置
+    oclaw_cfg = Path.home() / ".openclaw" / "openclaw.json"
+    if oclaw_cfg.exists():
+        try:
+            oc = json.loads(oclaw_cfg.read_text())
+            providers = oc.setdefault("models", {}).setdefault("providers", {})
+            no_provider_yet = not providers
+            providers["team"] = {
+                "baseUrl": base_url, "apiKey": api_key,
+                "api": "openai-completions",
+                "models": [{"id": openclaw_model, "name": "GPT-5.2 (Team)",
+                            "contextWindow": 1000000, "maxTokens": 16000,
+                            "reasoning": False, "input": ["text"],
+                            "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}}]
+            }
+            if no_provider_yet:
+                oc.setdefault("agents", {}).setdefault("defaults", {})["model"] = {
+                    "primary": f"team/{openclaw_model}"
+                }
+            oclaw_cfg.write_text(json.dumps(oc, indent=2, ensure_ascii=False))
+        except Exception as e:
+            print(f"⚠️  OpenClaw 配置写入失败: {e}")
+
+    # 同步 skills
+    try:
+        sr = requests.get(f"{url}/api/auth/skills", headers=headers, timeout=10)
+        if sr.status_code == 200:
+            skills_base = Path.home() / ".openclaw" / "skills"
+            synced = []
+            for skill in sr.json():
+                sname = skill.get("name", "").strip()
+                scontent = skill.get("content", "")
+                if not sname:
+                    continue
+                skill_dir = skills_base / sname
+                skill_dir.mkdir(parents=True, exist_ok=True)
+                (skill_dir / "SKILL.md").write_text(scontent, encoding="utf-8")
+                synced.append(sname)
+            if synced:
+                print(f"   Skills 已同步: {', '.join(synced)}")
+    except Exception:
+        pass
+
+    print("   AI 配置已同步")
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # 命令实现
 # ══════════════════════════════════════════════════════════════════════════════
@@ -168,77 +251,7 @@ def cmd_login(args):
 
     # 拉取团队 AI 配置并写入 Codex / OpenClaw
     try:
-        tc = requests.get(f"{url}/api/auth/team-config",
-                          headers={"Authorization": f"Bearer {data['access_token']}"}, timeout=10)
-        if tc.status_code == 200:
-            tc_data = tc.json()
-            api_key    = tc_data.get("api_key", "")
-            base_url   = tc_data.get("base_url", "")
-            codex_model    = tc_data.get("codex_model", "gpt-5.2-codex")
-            openclaw_model = tc_data.get("openclaw_model", "gpt-5.2")
-
-            if api_key:
-                # 写 Codex 配置
-                codex_dir = Path.home() / ".codex"
-                codex_dir.mkdir(exist_ok=True)
-                (codex_dir / "auth.json").write_text(
-                    json.dumps({"OPENAI_API_KEY": api_key}))
-                (codex_dir / "config.toml").write_text(
-                    f'model_provider = "team"\n'
-                    f'model = "{codex_model}"\n'
-                    f'model_reasoning_effort = "high"\n'
-                    f'disable_response_storage = true\n'
-                    f'preferred_auth_method = "apikey"\n\n'
-                    f'[model_providers.team]\n'
-                    f'name = "team"\n'
-                    f'base_url = "{base_url}"\n'
-                    f'wire_api = "responses"\n'
-                )
-
-                # 写 OpenClaw 配置
-                oclaw_cfg = Path.home() / ".openclaw" / "openclaw.json"
-                if oclaw_cfg.exists():
-                    try:
-                        oc = json.loads(oclaw_cfg.read_text())
-                        providers = oc.setdefault("models", {}).setdefault("providers", {})
-                        no_provider_yet = not providers
-                        providers["team"] = {
-                            "baseUrl": base_url, "apiKey": api_key,
-                            "api": "openai-completions",
-                            "models": [{"id": openclaw_model, "name": "GPT-5.2 (Team)",
-                                        "contextWindow": 1000000, "maxTokens": 16000,
-                                        "reasoning": False, "input": ["text"],
-                                        "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}}]
-                        }
-                        # Only set model primary if no model was configured before
-                        if no_provider_yet:
-                            oc.setdefault("agents", {}).setdefault("defaults", {})["model"] = {
-                                "primary": f"team/{openclaw_model}"
-                            }
-                        oclaw_cfg.write_text(json.dumps(oc, indent=2, ensure_ascii=False))
-                    except Exception:
-                        pass
-                print("   AI 配置已同步")
-        # 同步 skills
-        try:
-            sr = requests.get(f"{url}/api/auth/skills",
-                              headers={"Authorization": f"Bearer {data['access_token']}"}, timeout=10)
-            if sr.status_code == 200:
-                skills_base = Path.home() / ".openclaw" / "skills"
-                synced = []
-                for skill in sr.json():
-                    sname = skill.get("name", "").strip()
-                    content = skill.get("content", "")
-                    if not sname:
-                        continue
-                    skill_dir = skills_base / sname
-                    skill_dir.mkdir(parents=True, exist_ok=True)
-                    (skill_dir / "SKILL.md").write_text(content, encoding="utf-8")
-                    synced.append(sname)
-                if synced:
-                    print(f"   Skills 已同步: {', '.join(synced)}")
-        except Exception:
-            pass
+        _sync_ai_config(url, data["access_token"])
     except Exception:
         pass
 
@@ -273,84 +286,53 @@ def cmd_sync_config(_args):
         print("❌ 未登录，请先运行 pe login")
         sys.exit(1)
     try:
-        tc = requests.get(f"{url}/api/auth/team-config",
-                          headers={"Authorization": f"Bearer {token}"}, timeout=10)
-        if tc.status_code != 200:
-            print(f"❌ 获取 team-config 失败: {tc.status_code}")
-            sys.exit(1)
-        tc_data = tc.json()
-        api_key    = tc_data.get("api_key", "")
-        base_url   = tc_data.get("base_url", "")
-        codex_model    = tc_data.get("codex_model", "gpt-5.2-codex")
-        openclaw_model = tc_data.get("openclaw_model", "gpt-5.2")
-
-        if not api_key:
-            print("⚠️  服务器未配置 TEAM_API_KEY，跳过")
-            return
-
-        # 写 Codex 配置
-        codex_dir = Path.home() / ".codex"
-        codex_dir.mkdir(exist_ok=True)
-        (codex_dir / "auth.json").write_text(
-            json.dumps({"OPENAI_API_KEY": api_key}))
-        (codex_dir / "config.toml").write_text(
-            f'model_provider = "team"\n'
-            f'model = "{codex_model}"\n'
-            f'model_reasoning_effort = "high"\n'
-            f'disable_response_storage = true\n'
-            f'preferred_auth_method = "apikey"\n\n'
-            f'[model_providers.team]\n'
-            f'name = "team"\n'
-            f'base_url = "{base_url}"\n'
-            f'wire_api = "responses"\n'
-        )
-
-        # 写 OpenClaw 配置
-        oclaw_cfg = Path.home() / ".openclaw" / "openclaw.json"
-        if oclaw_cfg.exists():
-            try:
-                oc = json.loads(oclaw_cfg.read_text())
-                providers = oc.setdefault("models", {}).setdefault("providers", {})
-                no_provider_yet = not providers
-                providers["team"] = {
-                    "baseUrl": base_url, "apiKey": api_key,
-                    "api": "openai-completions",
-                    "models": [{"id": openclaw_model, "name": "GPT-5.2 (Team)",
-                                "contextWindow": 1000000, "maxTokens": 16000,
-                                "reasoning": False, "input": ["text"],
-                                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}}]
-                }
-                if no_provider_yet:
-                    oc.setdefault("agents", {}).setdefault("defaults", {})["model"] = {
-                        "primary": f"team/{openclaw_model}"
-                    }
-                oclaw_cfg.write_text(json.dumps(oc, indent=2, ensure_ascii=False))
-            except Exception as e:
-                print(f"⚠️  OpenClaw 配置写入失败: {e}")
-        # 同步 skills
-        try:
-            sr = requests.get(f"{url}/api/auth/skills",
-                              headers={"Authorization": f"Bearer {token}"}, timeout=10)
-            if sr.status_code == 200:
-                skills_base = Path.home() / ".openclaw" / "skills"
-                synced = []
-                for skill in sr.json():
-                    sname = skill.get("name", "").strip()
-                    scontent = skill.get("content", "")
-                    if not sname:
-                        continue
-                    skill_dir = skills_base / sname
-                    skill_dir.mkdir(parents=True, exist_ok=True)
-                    (skill_dir / "SKILL.md").write_text(scontent, encoding="utf-8")
-                    synced.append(sname)
-                if synced:
-                    print(f"   Skills 已同步: {', '.join(synced)}")
-        except Exception:
-            pass
+        _sync_ai_config(url, token)
         print("✅ AI 配置已同步（Codex + OpenClaw）")
     except Exception as e:
         print(f"❌ 同步失败: {e}")
         sys.exit(1)
+
+
+def cmd_config(args):
+    """查看或更新团队 AI 配置"""
+    sub = args[0] if args else "get"
+    rest = args[1:]
+
+    if sub in ("get", "show"):
+        r = check(api("get", "/api/auth/team-config"))
+        data = r.json()
+        print("团队 AI 配置:")
+        for key, value in data.items():
+            display = value
+            if key == "api_key" and value and len(value) > 8:
+                display = value[:4] + "***" + value[-4:]
+            print(f"  {key}: {display}")
+        return
+
+    if sub == "set":
+        import argparse
+        p = argparse.ArgumentParser()
+        p.add_argument("--api-key", default=None)
+        p.add_argument("--base-url", default=None)
+        p.add_argument("--codex-model", default=None)
+        p.add_argument("--openclaw-model", default=None)
+        opts = p.parse_args(rest)
+        body = {}
+        if opts.api_key is not None:       body["api_key"] = opts.api_key
+        if opts.base_url is not None:      body["base_url"] = opts.base_url
+        if opts.codex_model is not None:   body["codex_model"] = opts.codex_model
+        if opts.openclaw_model is not None: body["openclaw_model"] = opts.openclaw_model
+        if not body:
+            print("❌ 请提供至少一个要更新的字段")
+            sys.exit(1)
+        r = check(api("put", "/api/admin/team-config", json=body))
+        updated = r.json().get("updated", [])
+        print(f"✅ 已更新: {', '.join(updated)}")
+        return
+
+    print(f"❌ 未知子命令: {sub}")
+    print("用法: pe config [get|set --api-key K --base-url U ...]")
+    sys.exit(1)
 
 
 def cmd_status(_args):
@@ -985,6 +967,13 @@ HELP = """PE Space CLI — 内部 AI 工具平台
   pe whoami                      查看当前账号
   pe status                      检查平台连通性和登录状态
 
+配置:
+  pe config                      查看当前团队 AI 配置
+  pe config get                  同上
+  pe config set --api-key K --base-url U --codex-model M --openclaw-model M
+                                 更新团队 AI 配置（管理员）
+  pe sync-config                 同步团队 AI 配置到本地 Codex / OpenClaw
+
 应用:
   pe list [--status STATUS]      列出所有应用（含 URL）
   pe deploy [DIR] [--dir DIR] [--name N] [--slug S] [--desc D]
@@ -1043,6 +1032,7 @@ def main():
         "logout":      cmd_logout,
         "whoami":      cmd_whoami,
         "sync-config": cmd_sync_config,
+        "config":      cmd_config,
         "status":      cmd_status,
         "list":        cmd_list,
         "deploy":      cmd_deploy,

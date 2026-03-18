@@ -1,0 +1,71 @@
+version: "3.9"
+
+networks:
+  dev-v2-network:
+    driver: bridge
+
+volumes:
+  postgres-dev-v2-data:
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres_dev_v2
+    environment:
+      POSTGRES_DB: tool_platform
+      POSTGRES_USER: platform
+      POSTGRES_PASSWORD: dev123
+    volumes:
+      - postgres-dev-v2-data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    networks:
+      - dev-v2-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U platform -d tool_platform"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    container_name: backend_dev_v2
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      DATABASE_URL: postgresql://platform:dev123@postgres/tool_platform
+      JWT_SECRET: dev-local-secret-key-v2
+      JWT_EXPIRE_SECONDS: 86400
+      UPLOAD_DIR: /uploads/apps
+      HOST_UPLOAD_DIR: /tmp/pe_uploads_v2
+      TRAEFIK_DYNAMIC_DIR: /tmp/traefik-dynamic-v2
+      HOST_IP: host.docker.internal
+      PORT_RANGE_START: 9700
+      PORT_RANGE_END: 9800
+      TEAM_API_KEY: ${TEAM_API_KEY:-}
+      TEAM_BASE_URL: ${TEAM_BASE_URL:-}
+    volumes:
+      - ./backend/app:/app/app
+      - /tmp/pe_uploads_v2:/uploads/apps
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "8001:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - dev-v2-network
+
+  frontend:
+    image: node:20-alpine
+    container_name: frontend_dev_v2
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host --port 5174"
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "5174:5174"
+    environment:
+      VITE_API_TARGET: http://backend:8000
+    networks:
+      - dev-v2-network

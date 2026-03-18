@@ -12,9 +12,10 @@ class Settings(BaseSettings):
     port_range_start: int = 8600
     port_range_end: int = 9600
     team_api_key: str = ""
-    team_base_url: str = "http://104.238.222.107:3006/v1"
+    team_base_url: str = ""
     codex_model: str = "gpt-5.2-codex"
     openclaw_model: str = "gpt-5.2"
+    allowed_origins: str = ""  # Comma-separated allowed CORS origins; empty = "*"
 
     class Config:
         env_file = ".env"

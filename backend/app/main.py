@@ -1,27 +1,28 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from pathlib import Path
 
-from app.models import app_view  # noqa: F401 — ensure AppView table is registered
-from app.routers import admin, apps, auth, config, prompts, stats
+# Register ORM models so Alembic/SQLAlchemy can see all tables
+from app.infra.db.models import app as _app_model  # noqa: F401
+from app.infra.db.models import app_view as _app_view_model  # noqa: F401
+from app.infra.db.models import config as _config_model  # noqa: F401
+from app.infra.db.models import prompt as _prompt_model  # noqa: F401
+from app.infra.db.models import user as _user_model  # noqa: F401
 
-app = FastAPI(title="Tool Platform API", version="1.0.0")
+from app.api.middleware.cors import setup_cors
+from app.api.middleware.error_handler import setup_error_handlers
+from app.api.routes import admin, apps, auth, config as config_routes, prompts, stats
 
-# CORS：允许前端开发服务器访问
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app = FastAPI(title="Tool Platform API", version="2.0.0")
+
+setup_cors(app)
+setup_error_handlers(app)
 
 app.include_router(auth.router)
 app.include_router(apps.router)
 app.include_router(prompts.router)
 app.include_router(admin.router)
-app.include_router(config.router)
+app.include_router(config_routes.router)
 app.include_router(stats.router)
 
 

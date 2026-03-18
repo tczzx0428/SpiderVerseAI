@@ -14,9 +14,13 @@ database_url = os.environ.get("DATABASE_URL")
 if database_url:
     config.set_main_option("sqlalchemy.url", database_url)
 
-# 导入所有 models 让 Alembic 感知
-from app.database import Base
-from app.models import User, App, Prompt  # noqa
+# 导入所有 models 让 Alembic 感知（兼容新旧两套路径）
+from app.infra.db.database import Base
+from app.infra.db.models.user import User  # noqa
+from app.infra.db.models.app import App  # noqa
+from app.infra.db.models.prompt import Prompt  # noqa
+from app.infra.db.models.config import SystemConfig, ConfigHistory  # noqa
+from app.infra.db.models.app_view import AppView  # noqa
 
 target_metadata = Base.metadata
 

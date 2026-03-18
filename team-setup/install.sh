@@ -10,10 +10,6 @@ log()  { printf "  ${DIM}·${RESET} %s\n" "$*"; }
 warn() { printf "  ${YELLOW}⚠${RESET}  %s\n" "$*"; }
 
 SETUP_BASE="http://172.26.88.170:8080"
-API_KEY="sk-YaE1JNHEOdyqJ5sTWnSpuucCwU88Dimz2oFyBy9BXPfukohd"
-BASE_URL="http://104.238.222.107:3006/v1"
-CODEX_MODEL="gpt-5.2-codex"
-OPENCLAW_MODEL="gpt-5.2"
 
 printf "\n  ${BOLD}PE Space 团队环境安装${RESET}\n\n"
 
@@ -43,73 +39,10 @@ log "安装 Codex CLI ..."
 npm install -g @openai/codex --silent 2>/dev/null || sudo npm install -g @openai/codex --silent
 ok "Codex CLI $(codex --version 2>/dev/null || echo 'installed')"
 
-# ── Codex 配置 ────────────────────────────────────────────────────────────────
-mkdir -p "$HOME/.codex"
-cat > "$HOME/.codex/auth.json"    <<< "{\"OPENAI_API_KEY\": \"${API_KEY}\"}"
-cat > "$HOME/.codex/config.toml" << TOML
-model_provider = "team"
-model = "${CODEX_MODEL}"
-model_reasoning_effort = "high"
-disable_response_storage = true
-preferred_auth_method = "apikey"
-
-[model_providers.team]
-name = "team"
-base_url = "${BASE_URL}"
-wire_api = "responses"
-TOML
-ok "Codex 配置完成"
-
 # ── OpenClaw ──────────────────────────────────────────────────────────────────
 log "安装 OpenClaw ..."
 npm install -g openclaw --silent 2>/dev/null || sudo npm install -g openclaw --silent
 ok "OpenClaw $(openclaw --version 2>/dev/null || echo 'installed')"
-
-# ── OpenClaw 配置 ─────────────────────────────────────────────────────────────
-mkdir -p "$HOME/.openclaw"
-if [[ ! -f "$HOME/.openclaw/openclaw.json" ]]; then
-  cat > "$HOME/.openclaw/openclaw.json" << JSON
-{
-  "models": {
-    "mode": "merge",
-    "providers": {
-      "team": {
-        "baseUrl": "${BASE_URL}",
-        "apiKey": "${API_KEY}",
-        "api": "openai-completions",
-        "models": [
-          {
-            "id": "${OPENCLAW_MODEL}",
-            "name": "GPT-5.2 (Team)",
-            "contextWindow": 1000000,
-            "maxTokens": 16000,
-            "reasoning": false,
-            "input": ["text"],
-            "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
-          }
-        ]
-      }
-    }
-  },
-  "agents": {
-    "defaults": {
-      "model": { "primary": "team/${OPENCLAW_MODEL}" },
-      "workspace": "${HOME}/.openclaw/workspace",
-      "compaction": { "mode": "safeguard" }
-    }
-  },
-  "gateway": {
-    "port": 18789,
-    "mode": "local",
-    "bind": "loopback",
-    "auth": { "mode": "token" }
-  }
-}
-JSON
-  ok "OpenClaw 配置写入完成"
-else
-  ok "OpenClaw 已有配置，跳过"
-fi
 
 # ── Gateway ───────────────────────────────────────────────────────────────────
 log "启动 OpenClaw Gateway ..."

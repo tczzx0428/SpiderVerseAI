@@ -1,0 +1,6 @@
+from typing import Protocol
+
+
+class IRouteManager(Protocol):
+    def write_route(self, app_id: int, slug: str, host_port: int) -> None: ...
+    def remove_route(self, app_id: int) -> None: ...
