@@ -10,7 +10,10 @@ from app.core.strategies.app_runtime import IAppRuntime
 
 class DockerContainerRuntime:
     def __init__(self) -> None:
-        self._client = docker.from_env()
+        try:
+            self._client = docker.from_env()
+        except docker.errors.DockerException:
+            self._client = None
 
     def build_and_run(self, app_id: int, slug: str, build_path: str,
                       runtime: IAppRuntime | None = None) -> dict:

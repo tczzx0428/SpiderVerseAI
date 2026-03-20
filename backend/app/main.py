@@ -11,7 +11,7 @@ from app.infra.db.models import user as _user_model  # noqa: F401
 
 from app.api.middleware.cors import setup_cors
 from app.api.middleware.error_handler import setup_error_handlers
-from app.api.routes import admin, apps, auth, config as config_routes, prompts, stats
+from app.api.routes import admin, apps, auth, config as config_routes, prompts, skills, skills_cli, stats
 
 app = FastAPI(title="Tool Platform API", version="2.0.0")
 
@@ -23,6 +23,8 @@ app.include_router(apps.router)
 app.include_router(prompts.router)
 app.include_router(admin.router)
 app.include_router(config_routes.router)
+app.include_router(skills.router)
+app.include_router(skills_cli.router)
 app.include_router(stats.router)
 
 

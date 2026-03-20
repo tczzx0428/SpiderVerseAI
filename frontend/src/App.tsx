@@ -9,6 +9,7 @@ import HistoryPage from "@/pages/HistoryPage";
 import UserManagePage from "@/pages/admin/UserManagePage";
 import TemplateManagePage from "@/pages/admin/TemplateManagePage";
 import StatsPage from "@/pages/admin/StatsPage";
+import SkillsPage from "@/pages/SkillsPage";
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
           <Route index element={<HomePage />} />
           <Route path="apps" element={<AppsListPage />} />
           <Route path="apps/:appId" element={<AppDetailPage />} />
+          <Route path="skills" element={<SkillsPage />} />
           <Route
             path="history"
             element={

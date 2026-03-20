@@ -34,5 +34,8 @@ Thumbs.db
 # Build artifacts
 deploy.tar.gz
 
+# Database
+*.db
+
 # Traefik dynamic app routes (auto-generated, keep base.yml)
 traefik/dynamic/app_*.yml
