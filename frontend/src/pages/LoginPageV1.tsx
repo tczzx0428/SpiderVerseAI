@@ -263,10 +263,10 @@ export default function LoginPageV1() {
         <div style={{ width: "100%", maxWidth: 360 }}>
           <div style={{ marginBottom: 40 }}>
             <h2 style={{ fontSize: 26, fontWeight: 700, color: "#0a0a0a", letterSpacing: "-0.5px", margin: "0 0 8px" }}>
-              欢迎回来，老师
+              欢迎回来
             </h2>
             <p style={{ fontSize: 13, color: "#999", margin: 0 }}>
-              登录后开始创建你的互动教学工具
+              登录后开始创建你的AI工具
             </p>
           </div>
 
