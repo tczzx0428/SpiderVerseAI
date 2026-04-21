@@ -179,7 +179,7 @@ export default function LoginPageV1() {
                 SpiderVerseAI
               </div>
               <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginTop: 2, letterSpacing: "1px" }}>
-                灵感宇宙 · AI 一键生成平台
+                专为中小学教师打造的 AI 创课平台
               </div>
             </div>
           </div>
@@ -190,23 +190,23 @@ export default function LoginPageV1() {
               fontSize: 40, fontWeight: 800, color: "#fff", letterSpacing: "-1.5px",
               margin: "0 0 18px", lineHeight: 1.12,
             }}>
-              想法即产品<br />灵感零距离
+              把时间还给课堂<br />把灵感还给<span style={{ background: "linear-gradient(135deg,#a78bfa,#818cf8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>教育</span>
             </h1>
             <p style={{ fontSize: 15, color: "rgba(255,255,255,0.5)", margin: 0, lineHeight: 1.85, maxWidth: 400 }}>
-              在这里，每一个灵感都能被 AI 倾听。<br />
-              用自然语言描述你的创意，AI 自动完成
+              在这里，每一份教育初心都能被 AI 守护。<br />
+              用自然语言描述你的创意，AI 帮你完成
               <span style={{ color: "rgba(167,139,250,0.75)" }}> 构建 → 部署 → 上线</span>
               全流程。<br />
-              从灵感到现实，只需一次对话。
+              不懂代码，也能做出惊艳的互动教学工具。
             </p>
           </div>
 
           {/* 特性标签 */}
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 36 }}>
             {[
-              { label: "✦ 自然语言驱动", highlight: false },
-              { label: "⚡ AI 秒级构建", highlight: true },
-              { label: "🚀 一键部署上线", highlight: false },
+              { label: "✦ 零代码，自然语言驱动", highlight: false },
+              { label: "⚡ AI 秒级构建课件", highlight: true },
+              { label: "🚀 一键部署到课堂", highlight: false },
             ].map((item) => (
               <span key={item.label} style={{
                 padding: "6px 14px", borderRadius: 20, fontSize: 12, fontWeight: 500,
@@ -263,10 +263,10 @@ export default function LoginPageV1() {
         <div style={{ width: "100%", maxWidth: 360 }}>
           <div style={{ marginBottom: 40 }}>
             <h2 style={{ fontSize: 26, fontWeight: 700, color: "#0a0a0a", letterSpacing: "-0.5px", margin: "0 0 8px" }}>
-              欢迎回来
+              欢迎回来，老师
             </h2>
             <p style={{ fontSize: 13, color: "#999", margin: 0 }}>
-              登录 SpiderVerseAI，开启 AI 创作之旅
+              登录后开始创建你的互动教学工具
             </p>
           </div>
 
