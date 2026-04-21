@@ -30,7 +30,7 @@ export default function HomePage() {
   return (
     <div className="hp-root">
       <style>{`
-        .hp-root{font-family:Inter,-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-serif;background:#fafbfc;min-height:100%}
+        .hp-root{font-family:Inter,-apple-system,BlinkMacSystemFont,'SF Pro','PingFang SC',sans-serif;background:#fafbfc;min-height:100%;padding:0 20px}
         .hp-hero{background:linear-gradient(135deg,#0a0a0a 0%,#111827 40%,#1e1b4b 100%);border-radius:24px;margin:20px 0 32px;padding:56px 52px 48px;position:relative;overflow:hidden;color:#fff}
         .hp-hero-glow{position:absolute;inset:0;overflow:hidden;pointer-events:none}
         .hp-hero-glow-1{position:absolute;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(99,102,241,.18) 0%,transparent 70%);top:-15%;right:-5%;animation:hgf1 14s ease-in-out infinite}
@@ -38,9 +38,9 @@ export default function HomePage() {
         @keyframes hgf1{0%,100%{transform:translate(0,0)}50%{transform:translate(-30px,20px)}}
         @keyframes hgf2{0%,100%{transform:translate(0,0)}50%{transform:translate(25px,-15px)}}
         .hp-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);font-size:13px;font-weight:500;color:rgba(255,255,255,.7);margin-bottom:24px}
-        .hp-title{font-size:36px;font-weight:800;letter-spacing:-1px;margin:0 0 16px;line-height:1.2;max-width:560px}
+        .hp-title{font-size:36px;font-weight:800;letter-spacing:-1px;margin:0 0 16px;line-height:1.35;max-width:580px}
         .hp-title span{background:linear-gradient(135deg,#a78bfa,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-        .hp-desc{font-size:16px;color:rgba(255,255,255,.55);margin:0 0 32px;line-height:1.75;max-width:500px}
+        .hp-desc{font-size:16px;color:rgba(255,255,255,.55);margin:0 0 32px;line-height:1.85;max-width:520px}
         .hp-btns{display:flex;gap:12px;flex-wrap:wrap}
         .hp-btn-primary{padding:13px 28px;background:#fff;color:#0a0a0a;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:all .25s;box-shadow:0 4px 16px rgba(255,255,255,.15)}
         .hp-btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(255,255,255,.25)}
@@ -75,14 +75,44 @@ export default function HomePage() {
         .hp-link-btn{padding:8px 18px;background:#f5f5f7;color:#333;border:1px solid #e5e5e5;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer}
         .hp-link-btn:hover{background:#efefef}
         .hp-ext-link{display:inline-block;margin-top:12px;font-size:12px;color:#3b82f6;text-decoration:none;font-weight:500}
+
+        @media(max-width:1100px){
+          .hp-root{padding:0 16px}
+          .hp-hero{padding:44px 36px 40px;border-radius:20px}
+          .hp-title{font-size:30px;max-width:480px}
+          .hp-desc{font-size:15px;max-width:450px}
+        }
+        @media(max-width:900px){
+          .hp-grid-steps{grid-template-columns:repeat(2,1fr)!important}
+          .hp-grid-tpls{grid-template-columns:repeat(2,1fr)!important}
+          .hp-grid-apps{grid-template-columns:repeat(2,1fr)!important}
+          .hp-hero{padding:36px 28px 34px}
+          .hp-title{font-size:27px}
+          .hp-desc{font-size:14.5px}
+        }
+        @media(max-width:680px){
+          .hp-root{padding:0 12px}
+          .hp-hero{padding:32px 20px 28px;border-radius:18px;margin:12px 0 24px}
+          .hp-badge{font-size:12px;padding:5px 13px;margin-bottom:18px}
+          .hp-title{font-size:24px;max-width:100%;letter-spacing:-.5px}
+          .hp-desc{font-size:14px;max-width:100%;margin-bottom:24px;line-height:1.8}
+          .hp-btns{flex-direction:column}
+          .hp-btn-primary,.hp-btn-ghost{width:100%;text-align:center;justify-content:center}
+          .hp-grid-steps,.hp-grid-tpls,.hp-grid-apps{grid-template-columns:1fr!important;gap:12px!important}
+          .hp-card{padding:22px 18px}
+          .hp-tpl{padding:18px 16px}
+          .hp-tip{flex-direction:column;text-align:center;padding:22px 20px}
+          .hp-empty{padding:36px 20px}
+          .hp-section-h2{font-size:19px}
+        }
       `}</style>
 
       <section className="hp-hero">
         <div className="hp-hero-glow"><div className="hp-hero-glow-1" /><div className="hp-hero-glow-2" /></div>
         <div style={{ position: "relative", zIndex: 1 }}>
           <div className="hp-badge"><span style={{ fontSize: 16 }}>\uD83D\uDC68\u200D\uD83C\uDFEB</span> 专为中小学教师打造的 AI 创课平台</div>
-          <h1 className="hp-title">不懂代码？<br />也能做出惊艳的<span>互动教学工具</span></h1>
-          <p className="hp-desc">用自然语言描述你想要的课件或课堂工具，AI 帮你自动生成。<br />物理演示、地理可视化、数学工具、课堂游戏……一切皆可创造。</p>
+          <h1 className="hp-title">把时间还给课堂<br />把灵感还给<span>教育</span></h1>
+          <p className="hp-desc">在这里，每一份教育初心都能被 AI 守护。<br />用自然语言描述你的创意，AI 帮你完成。</p>
           <div className="hp-btns">
             <button className="hp-btn-primary" onClick={() => navigate("/apps")}>\u2728 开始创作</button>
             <button className="hp-btn-ghost" onClick={() => document.getElementById("templates")?.scrollIntoView({ behavior: "smooth" })}>看看模板 \u2192</button>
@@ -91,7 +121,7 @@ export default function HomePage() {
       </section>
 
       <section style={{ marginBottom: 40 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
+        <div className="hp-grid-steps" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
           {STEPS.map((step, i) => (
             <div key={step.num} className="hp-card"
               onMouseEnter={(e) => { const el = e.currentTarget; el.style.boxShadow = "0 8px 30px rgba(0,0,0,0.06)"; el.style.transform = "translateY(-2px)"; }}
@@ -110,7 +140,7 @@ export default function HomePage() {
         <div style={{ marginBottom: 24, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div><h2 className="hp-section-h2">\uD83C\uDFA8 从模板开始</h2><p className="hp-section-sub">选择一个场景，AI 会帮你生成对应的互动教学工具</p></div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
+        <div className="hp-grid-tpls" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
           {TEMPLATES.map((t, idx) => (
             <div key={idx} className={`hp-tpl${selectedTemplate === idx ? " active" : ""}`} onClick={() => setSelectedTemplate(selectedTemplate === idx ? null : idx)} style={selectedTemplate === idx ? { "--tpl-color": t.color, "--tpl-bg": t.bg } as React.CSSProperties : undefined}
               onMouseEnter={(e) => { if (selectedTemplate !== idx) { e.currentTarget.style.borderColor = "#e0e0e0"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.04)"; } }}
@@ -132,18 +162,18 @@ export default function HomePage() {
       </section>
 
       <section style={{ marginBottom: 40 }}>
-        <div style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
           <div><h2 className="hp-section-h2">\uD83D\uDCC2 我的作品</h2><p className="hp-section-sub">你已创建的教学工具和应用</p></div>
           <button className="hp-link-btn" onClick={() => navigate("/apps")}>查看全部 \u2192</button>
         </div>
         {loading ? (<div style={{ textAlign: "center", padding: "60px 0", color: "#ccc", fontSize: 14 }}>加载中...</div>) : apps.length > 0 ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
+          <div className="hp-grid-apps" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
             {apps.map((app) => (
               <div key={app.id} className="hp-app-card" onClick={() => navigate(`/apps/${app.id}`)}
                 onMouseEnter={(e) => { const el = e.currentTarget; el.style.boxShadow = "0 6px 24px rgba(0,0,0,0.06)"; el.style.transform = "translateY(-2px)"; }}
                 onMouseLeave={(e) => { const el = e.currentTarget; el.style.boxShadow = ""; el.style.transform = ""; }}
               >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, flexWrap: "wrap", gap: 6 }}>
                   <h3 style={{ fontSize: 16, fontWeight: 700, color: "#1a1a1a", margin: 0 }}>{app.name}</h3>
                   <span className={`hp-status ${app.status === "running" ? "hp-status-running" : app.status === "stopped" ? "hp-status-stopped" : "hp-status-other"}`}>{({ running: "运行中", stopped: "已停止", building: "构建中", failed: "失败", pending: "等待中" }[app.status] || app.status)}</span>
                 </div>
