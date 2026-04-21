@@ -69,21 +69,21 @@ export default function LoginPage() {
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 16, fontWeight: 700, color: "#111", letterSpacing: "-0.5px",
             flexShrink: 0,
-          }}>AS</div>
+          }}>SV</div>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", letterSpacing: "-0.3px" }}>APP STORE</div>
-            <div style={{ fontSize: 12, color: "#555", marginTop: 1 }}>内部 AI 工具平台</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", letterSpacing: "-0.3px" }}>SpiderVerseAI</div>
+            <div style={{ fontSize: 12, color: "#555", marginTop: 1 }}>灵感宇宙 · AI 创作平台</div>
           </div>
         </div>
 
         {/* 标题 */}
         <div style={{ marginBottom: 48 }}>
           <h1 style={{ fontSize: 32, fontWeight: 700, color: "#fff", letterSpacing: "-1px", margin: "0 0 12px", lineHeight: 1.2 }}>
-            把想法变成<br />可用的工具
+            释放灵感<br />创造无限可能
           </h1>
           <p style={{ fontSize: 14, color: "#555", margin: 0, lineHeight: 1.7 }}>
-            描述需求，AI 自动生成代码并部署。<br />
-            首次使用需要先安装开发环境。
+            用 AI 的力量，将灵感转化为现实。<br />
+            探索无限创意宇宙，让每一个灵感都闪耀。
           </p>
         </div>
 
@@ -125,7 +125,7 @@ export default function LoginPage() {
             </button>
           </div>
           <p style={{ fontSize: 12, color: "#333", marginTop: 10, margin: "10px 0 0" }}>
-            在 Mac 终端运行，自动安装 Codex / OpenClaw / pe CLI
+            在终端运行，自动安装 Codex / OpenClaw / sv CLI
           </p>
         </div>
       </div>

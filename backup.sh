@@ -1,11 +1,11 @@
 #!/bin/bash
 # 生产数据库备份脚本
 # 用法：./backup.sh
-# 备份文件存放在 /opt/PE_Space/backups/
+# 备份文件存放在 /opt/SV_Space/backups/
 
 set -e
 
-BACKUP_DIR="/opt/PE_Space/backups"
+BACKUP_DIR="/opt/SV_Space/backups"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 BACKUP_FILE="$BACKUP_DIR/db_$TIMESTAMP.sql.gz"
 

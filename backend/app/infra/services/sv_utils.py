@@ -1,4 +1,4 @@
-"""PE Space 平台工具库 - 自动注入到每个应用容器中。
+"""SpiderVerseAI 平台工具库 - 自动注入到每个应用容器中。
 提供标准的结果文件保存接口，确保历史记录可追踪。
 """
 import os
@@ -16,7 +16,7 @@ RESULTS_DIR = DATA_DIR / "results"
 def _get_username():
     try:
         import streamlit as st
-        return st.query_params.get("pe_user", "")
+        return st.query_params.get("sv_user", "")
     except Exception:
         return ""
 

@@ -69,7 +69,7 @@ class DockerContainerRuntime:
             image=image_tag, name=container_name, detach=True,
             ports={f"{container_port}/tcp": host_port},
             volumes={str(data_dir_host): {"bind": "/app/data", "mode": "rw"}},
-            environment={"HOST_IP": settings.host_ip, "PE_APP_ID": str(app_id)},
+            environment={"HOST_IP": settings.host_ip, "SV_APP_ID": str(app_id)},
             labels={"tool-platform.app_id": str(app_id), "tool-platform.slug": slug},
             restart_policy={"Name": "unless-stopped"},
         )

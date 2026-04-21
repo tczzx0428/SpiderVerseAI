@@ -1,4 +1,4 @@
-# PE Space — 内部 AI 工具托管平台
+# SpiderVerseAI — 内部 AI 工具托管平台
 
 类似 HuggingFace Spaces 的内部工具托管平台，支持一键上传并部署 Streamlit 应用，带用户管理、权限控制和使用统计。团队成员通过 `pe` CLI 或 OpenClaw AI 助手操作。
 
@@ -17,7 +17,7 @@
 | 用户管理 | 创建/禁用用户；批量创建标注账号；支持账号过期时间 |
 | 代码规范 | 管理员可在线编辑「代码规范 Prompt」，用于规范 AI 生成的应用代码 |
 | 历史记录 | 每次应用运行自动保存入参/出参 JSON，支持时间轴回看 |
-| pe CLI | 命令行工具，支持 deploy/status/logs/stop/restart/delete/history 等完整操作 |
+| sv CLI | 命令行工具，支持 deploy/status/logs/stop/restart/delete/history 等完整操作 |
 | AI 配置同步 | 登录后自动把团队 API Key / 模型配置写入 Codex 和 OpenClaw，无需手动配置 |
 | Skills 管理 | 管理员在后台维护 OpenClaw Skills，成员登录时自动同步到本地 |
 
@@ -26,7 +26,7 @@
 ## 架构
 
 ```
-Browser / pe CLI / OpenClaw
+Browser / sv CLI / OpenClaw
   │
   ▼
 Traefik (80)
@@ -35,7 +35,7 @@ Traefik (80)
   └── /*              → React 前端 (Nginx)
 
 PostgreSQL           — 用户、应用元数据、访问日志、团队配置
-/opt/PE_Space/uploads — 应用代码、数据、运行历史
+/opt/SV_Space/uploads — 应用代码、数据、运行历史
 traefik/dynamic/     — 动态路由配置（热加载）
 ```
 
@@ -50,9 +50,9 @@ container.py — 依赖注入，组装所有依赖
 
 ### ForwardAuth 流程
 
-1. 浏览器携带 `pe_token` Cookie 访问 `/apps/{slug}/...`
+1. 浏览器携带 `sv_token` Cookie 访问 `/apps/{slug}/...`
 2. Traefik 调用 `GET /api/auth/verify-app`，验证 JWT
-3. 验证通过 → 注入 `X-PE-User` / `X-PE-Role` / `X-PE-User-Id` Header，记录 `app_views` 访问日志
+3. 验证通过 → 注入 `X-SV-User` / `X-SV-Role` / `X-SV-User-Id` Header，记录 `app_views` 访问日志
 4. 验证失败 → 直接返回 401
 
 ---
@@ -61,7 +61,7 @@ container.py — 依赖注入，组装所有依赖
 
 ```bash
 # 1. 克隆代码
-git clone https://github.com/SenWeiV/PE_Space.git && cd PE_Space
+git clone https://github.com/SenWeiV/SV_Space.git && cd SV_Space
 
 # 2. 配置环境变量
 cp .env.example .env
@@ -73,7 +73,7 @@ cd backend  && docker build -t tool-platform-backend:latest  . && cd ..
 cd frontend && docker build -t tool-platform-frontend:latest . && cd ..
 
 # 4. 创建网络 & 启动
-docker network create pe_space_tool-platform-network
+docker network create sv_space_tool-platform-network
 docker compose up -d
 
 # 5. 执行数据库迁移
@@ -111,21 +111,21 @@ curl -fsSL http://YOUR_PLATFORM_HOST:8080/install.sh | bash
 
 ---
 
-## pe CLI 常用命令
+## sv CLI 常用命令
 
 ```bash
-pe login                   # 登录（自动同步 AI 配置）
-pe list                    # 查看应用列表
-pe deploy                  # 部署当前目录应用
-pe status <slug>           # 查看应用状态
-pe logs <slug>             # 查看日志
-pe stop / restart <slug>   # 停止 / 重启
-pe delete <slug>           # 删除应用
-pe history <slug>          # 查看运行历史
-pe stats                   # 查看全局统计（admin）
-pe users list/create       # 用户管理（admin）
-pe rules                   # 查看/更新代码规范
-pe config sync             # 手动重新同步 AI 配置
+sv login                   # 登录（自动同步 AI 配置）
+sv list                    # 查看应用列表
+sv deploy                  # 部署当前目录应用
+sv status <slug>           # 查看应用状态
+sv logs <slug>             # 查看日志
+sv stop / restart <slug>   # 停止 / 重启
+sv delete <slug>           # 删除应用
+sv history <slug>          # 查看运行历史
+sv stats                   # 查看全局统计（admin）
+sv users list/create       # 用户管理（admin）
+sv rules                   # 查看/更新代码规范
+sv config sync             # 手动重新同步 AI 配置
 ```
 
 ---
@@ -139,14 +139,14 @@ zip 包必须包含：
 
 平台自动注入 Dockerfile，无需手动提供。
 
-应用代码规范参考「代码规范 Prompt」（管理后台或 `pe rules` 可查看/编辑）。
+应用代码规范参考「代码规范 Prompt」（管理后台或 `sv rules` 可查看/编辑）。
 
 ---
 
 ## 目录结构
 
 ```
-PE_Space/
+SV_Space/
 ├── backend/
 │   ├── alembic/versions/       # 数据库迁移脚本
 │   ├── app/
@@ -177,7 +177,7 @@ PE_Space/
 │   └── Dockerfile
 ├── team-setup/
 │   ├── install.sh              # 一键安装脚本（成员用）
-│   └── pe                      # PE Space CLI（Python 单文件）
+│   └── pe                      # SpiderVerseAI CLI（Python 单文件）
 ├── traefik/
 │   ├── traefik.yml             # 静态配置
 │   └── dynamic/
@@ -201,7 +201,7 @@ PE_Space/
 
 ## 路线图
 
-- [x] **CLI 工具**：`pe deploy` 直接从本地上传并部署，无需手动压缩上传
+- [x] **CLI 工具**：`sv deploy` 直接从本地上传并部署，无需手动压缩上传
 - [x] **AI 配置自动同步**：登录时自动下发 API Key 和模型配置
 - [x] **Skills 管理**：后台维护，成员登录自动同步
 - [ ] **前后端分离部署**：支持 FastAPI + React 等多容器应用

@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 router = APIRouter(prefix="/api/skills", tags=["skills"])
 
 VALID_CATEGORIES = ["dev-tools", "text", "data", "automation", "other"]
-SKILLS_STORAGE_DIR = Path("/tmp/pe_skills")
+SKILLS_STORAGE_DIR = Path("/tmp/sv_skills")
 
 
 def _get_skill_dir(name: str) -> Path:

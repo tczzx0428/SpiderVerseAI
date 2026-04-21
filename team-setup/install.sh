@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# OpenClaw + Codex + PE Space 团队一键安装
+# OpenClaw + Codex + SpiderVerseAI 团队一键安装
 # 用法: curl -fsSL http://YOUR_PLATFORM_HOST:8080/install.sh | bash
 
 set -euo pipefail
@@ -11,7 +11,7 @@ warn() { printf "  ${YELLOW}⚠${RESET}  %s\n" "$*"; }
 
 SETUP_BASE="http://YOUR_PLATFORM_HOST:8080"
 
-printf "\n  ${BOLD}PE Space 团队环境安装${RESET}\n\n"
+printf "\n  ${BOLD}SpiderVerseAI 团队环境安装${RESET}\n\n"
 
 # ── Node.js ───────────────────────────────────────────────────────────────────
 install_node() {
@@ -56,15 +56,15 @@ for i in 1 2 3 4 5; do
   [[ $i -eq 5 ]] && warn "Gateway 稍后运行 'openclaw gateway status' 确认"
 done
 
-# ── PE Space CLI ──────────────────────────────────────────────────────────────
-log "安装 PE Space CLI ..."
-PE_BIN=""
+# ── SpiderVerseAI CLI ──────────────────────────────────────────────────────────────
+log "安装 SpiderVerseAI CLI ..."
+SV_BIN=""
 if curl -fsSL "${SETUP_BASE}/pe" -o /usr/local/bin/pe 2>/dev/null && chmod +x /usr/local/bin/pe 2>/dev/null; then
-  PE_BIN="/usr/local/bin/pe"
+  SV_BIN="/usr/local/bin/pe"
 else
   mkdir -p "$HOME/.local/bin"
   curl -fsSL "${SETUP_BASE}/pe" -o "$HOME/.local/bin/pe" && chmod +x "$HOME/.local/bin/pe"
-  PE_BIN="$HOME/.local/bin/pe"
+  SV_BIN="$HOME/.local/bin/pe"
   # 确保 PATH 包含 ~/.local/bin
   for rc in ~/.zshrc ~/.bashrc ~/.bash_profile; do
     [[ -f "$rc" ]] && grep -q '\.local/bin' "$rc" && continue
@@ -75,19 +75,19 @@ fi
 
 # 安装 requests 依赖
 python3 -m pip install requests -q 2>/dev/null || pip3 install requests -q 2>/dev/null || true
-ok "PE CLI 已安装 ($PE_BIN)"
+ok "sv CLI 已安装 ($SV_BIN)"
 
-# ── PE Space 登录 ─────────────────────────────────────────────────────────────
-printf "\n  ${BOLD}登录 PE Space 平台${RESET}  (http://YOUR_PLATFORM_HOST)\n"
+# ── SpiderVerseAI 登录 ─────────────────────────────────────────────────────────────
+printf "\n  ${BOLD}登录 SpiderVerseAI 平台${RESET}  (http://YOUR_PLATFORM_HOST)\n"
 printf "  账号格式：姓名全拼，密码：全拼+123\n\n"
-pe login --url "http://YOUR_PLATFORM_HOST"
+sv login --url "http://YOUR_PLATFORM_HOST"
 
-# ── 安装 PE Space Skill ───────────────────────────────────────────────────────
-SKILL_DIR="$HOME/.openclaw/workspace/skills/pe-space"
+# ── 安装 SpiderVerseAI Skill ───────────────────────────────────────────────────────
+SKILL_DIR="$HOME/.openclaw/workspace/skills/sv-space"
 if [[ ! -d "$SKILL_DIR" ]]; then
   mkdir -p "$SKILL_DIR"
-  curl -fsSL "${SETUP_BASE}/pe-space-skill.md" -o "$SKILL_DIR/SKILL.md" 2>/dev/null || true
-  ok "PE Space Skill 已安装"
+  curl -fsSL "${SETUP_BASE}/sv-space-skill.md" -o "$SKILL_DIR/SKILL.md" 2>/dev/null || true
+  ok "SpiderVerseAI Skill 已安装"
 fi
 
 # ── 交给 Codex 接管验证 ────────────────────────────────────────────────────────
@@ -99,5 +99,5 @@ curl -fsSL "${SETUP_BASE}/SETUP.md" -o "$TMPSETUP" 2>/dev/null || \
 if [[ -f "$TMPSETUP" ]]; then
   codex "请读取以下安装指南并执行验证：$(cat "$TMPSETUP")"
 else
-  codex "环境安装完成，请验证 Node.js、Codex、OpenClaw、pe 命令均正常，有问题自动修复，中文沟通。"
+  codex "环境安装完成，请验证 Node.js、Codex、OpenClaw、sv 命令均正常，有问题自动修复，中文沟通。"
 fi
