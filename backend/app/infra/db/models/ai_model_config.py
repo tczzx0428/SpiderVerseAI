@@ -24,6 +24,8 @@ class AIModelConfig(Base):
 
     description = Column(Text, nullable=True)
 
+    system_prompt = Column(Text, nullable=True)
+
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     updated_at = Column(DateTime, nullable=False, default=now_cst, onupdate=now_cst)
     created_at = Column(DateTime, nullable=False, default=now_cst)

@@ -16,14 +16,16 @@ class AutoDeployService:
 
     def start_deploy(self, creation_id: int, user_id: int,
                      requirements: dict, generated_code: dict[str, str]) -> None:
-        """Start async deployment in background thread."""
         def run():
             db = SessionLocal()
             try:
                 repo = AICreationRepo(db)
                 self._do_deploy(creation_id, user_id, requirements, generated_code, repo)
             except Exception as e:
-                repo.update_status(creation_id, "failed", error=str(e))
+                try:
+                    repo.update_status(creation_id, "failed", error=str(e))
+                except Exception:
+                    pass
             finally:
                 db.close()
 
@@ -56,6 +58,7 @@ class AutoDeployService:
                                message="正在打包代码...", app_id=app_id)
 
             tmp_dir = tempfile.mkdtemp()
+            zip_path = ""
             try:
                 for filename, content in code.items():
                     filepath = os.path.join(tmp_dir, filename)
@@ -67,20 +70,15 @@ class AutoDeployService:
                     for filename in code.keys():
                         zf.write(os.path.join(tmp_dir, filename), filename)
 
-                upload_dir = os.path.join(settings.host_upload_dir, str(app_id))
-                os.makedirs(upload_dir, exist_ok=True)
-                import shutil
-                shutil.copy2(zip_path, os.path.join(upload_dir, "upload.zip"))
+                repo.update_status(creation_id, "generating", progress=35,
+                                   message="正在上传代码...")
 
-                from zipfile import ZipFile
-                extract_dir = os.path.join(upload_dir, "extracted")
-                os.makedirs(extract_dir, exist_ok=True)
-                with ZipFile(zip_path, "r") as zf:
-                    zf.extractall(extract_dir)
-
-                app_entity = c.get_app.execute(app_id)
-                app_entity.upload_path = extract_dir
-                c.upload_code._app_repo.update(app_entity)
+                c.upload_code.execute(
+                    app_id=app_id,
+                    zip_path=zip_path,
+                    current_user_id=user_id,
+                    current_user_role="admin",
+                )
 
             finally:
                 import shutil
@@ -89,7 +87,7 @@ class AutoDeployService:
             repo.update_status(creation_id, "building", progress=50,
                                message="正在构建和部署应用...")
 
-            c.deploy_app.validate(app_id, user_id, "user")
+            c.deploy_app.validate(app_id, user_id, "admin")
             c.deploy_app.run_deploy(app_id)
 
             repo.update_status(creation_id, "running", progress=100,

@@ -108,7 +108,7 @@ def start_creation(req: StartCreateRequest,
             raise HTTPException(404, "会话不存在")
         if creation.user_id != current_user.id and current_user.role != "admin":
             raise HTTPException(403, "无权操作此会话")
-        if creation.status != "chatting":
+        if creation.status not in ("chatting", "failed"):
             raise HTTPException(400, f"当前状态 {creation.status} 无法开始创建")
 
         conversation = creation.conversation or []

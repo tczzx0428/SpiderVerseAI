@@ -33,6 +33,7 @@ class ModelConfigUpdate(BaseModel):
     is_enabled: Optional[bool] = None
     priority: Optional[int] = None
     description: Optional[str] = None
+    system_prompt: Optional[str] = None
 
 
 class ModelConfigOut(BaseModel):
@@ -46,6 +47,7 @@ class ModelConfigOut(BaseModel):
     is_enabled: bool
     priority: int
     description: Optional[str]
+    system_prompt: Optional[str]
     created_by: int
     created_at: str
 
@@ -71,6 +73,7 @@ def _to_out(m) -> dict:
         "is_enabled": m.is_enabled,
         "priority": m.priority,
         "description": m.description,
+        "system_prompt": m.system_prompt,
         "created_by": m.created_by,
         "created_at": m.created_at.isoformat() if m.created_at else "",
     }
@@ -198,5 +201,51 @@ def toggle_model(
         if not model:
             raise HTTPException(404, "模型配置不存在")
         return _to_out(model)
+    finally:
+        db.close()
+
+
+class SystemPromptUpdate(BaseModel):
+    system_prompt: str
+
+
+@router.get("/{model_id}/system-prompt", response_model=dict)
+def get_system_prompt(
+    model_id: int,
+    admin: User = Depends(require_admin)
+):
+    db = SessionLocal()
+    try:
+        repo = AIModelConfigRepo(db)
+        model = repo.get(model_id)
+        if not model:
+            raise HTTPException(404, "模型配置不存在")
+        return {
+            "id": model.id,
+            "name": model.name,
+            "system_prompt": model.system_prompt or "",
+        }
+    finally:
+        db.close()
+
+
+@router.put("/{model_id}/system-prompt", response_model=dict)
+def update_system_prompt(
+    model_id: int,
+    body: SystemPromptUpdate,
+    admin: User = Depends(require_admin)
+):
+    db = SessionLocal()
+    try:
+        repo = AIModelConfigRepo(db)
+        model = repo.update(model_id, {"system_prompt": body.system_prompt})
+        if not model:
+            raise HTTPException(404, "模型配置不存在")
+        return {
+            "id": model.id,
+            "name": model.name,
+            "system_prompt": model.system_prompt,
+            "message": "系统提示词更新成功",
+        }
     finally:
         db.close()

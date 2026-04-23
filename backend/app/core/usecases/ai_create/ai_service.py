@@ -90,11 +90,18 @@ class AIChatService:
 
         return self._clients["default"], model
 
+    def _get_system_prompt(self) -> str:
+        config = self._get_model_config("chat")
+        if config and config.system_prompt:
+            return config.system_prompt
+        return SYSTEM_PROMPT
+
     def chat(self, conversation: list[dict], user_message: str) -> dict:
         client, model = self._get_client("chat")
+        system_prompt = self._get_system_prompt()
 
         messages = [
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": system_prompt},
             *conversation,
             {"role": "user", "content": user_message},
         ]

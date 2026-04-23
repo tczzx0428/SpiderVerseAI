@@ -11,6 +11,7 @@ export interface AIModelConfig {
   is_enabled: boolean;
   priority: number;
   description: string | null;
+  system_prompt: string | null;
   created_by: number;
   created_at: string;
 }
@@ -39,3 +40,9 @@ export const deleteModel = (id: number) =>
 
 export const toggleModel = (id: number) =>
   client.post<AIModelConfig>(`/admin/models/${id}/toggle`);
+
+export const getSystemPrompt = (id: number) =>
+  client.get<{ id: number; name: string; system_prompt: string }>(`/admin/models/${id}/system-prompt`);
+
+export const updateSystemPrompt = (id: number, system_prompt: string) =>
+  client.put<{ id: number; name: string; system_prompt: string; message: string }>(`/admin/models/${id}/system-prompt`, { system_prompt });

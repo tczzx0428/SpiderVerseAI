@@ -24,6 +24,8 @@ import {
   CloseCircleOutlined,
   LinkOutlined,
   DeleteOutlined,
+  UserOutlined,
+  ClockCircleOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import {
@@ -50,6 +52,36 @@ const STATUS_MAP: Record<string, { color: string; label: string }> = {
 
 export default function CreateAppPage() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const styleId = "create-app-animations";
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement("style");
+      style.id = styleId;
+      style.textContent = `
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes bounce {
+          0%, 80%, 100% {
+            transform: scale(0);
+          }
+          40% {
+            transform: scale(1);
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }, []);
 
   const [view, setView] = useState<"chat" | "history">("chat");
   const [currentId, setCurrentId] = useState<number | null>(null);
@@ -261,79 +293,232 @@ export default function CreateAppPage() {
                   <p>告诉我你想创建什么应用，我会帮你一步步完成</p>
                 </div>
               )}
-              {messages.map((msg, idx) => (
-                <div key={idx} style={{ marginBottom: msg.role === "assistant" && msg.options ? 8 : 16 }}>
+              {messages.map((msg, idx) => {
+                const isUser = msg.role === "user";
+                const showOptions = !isUser && msg.options && msg.options.length > 0;
+
+                return (
                   <div
+                    key={idx}
                     style={{
-                      marginBottom: msg.options ? 8 : 0,
+                      marginBottom: showOptions ? 20 : 24,
                       display: "flex",
-                      justifyContent: msg.role === "user" ? "flex-end" : "flex-start",
+                      flexDirection: "column",
+                      alignItems: isUser ? "flex-end" : "flex-start",
+                      animation: `fadeInUp 0.3s ease-out`,
                     }}
                   >
-                    <div
-                      style={{
-                        maxWidth: "70%",
-                        padding: "12px 16px",
-                        borderRadius: 12,
-                        background: msg.role === "user" ? "#165DFF" : "#fff",
-                        color: msg.role === "user" ? "#fff" : "#1a1a1a",
-                        boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-                        whiteSpace: "pre-wrap",
-                        wordBreak: "break-word",
-                      }}
-                    >
-                      {msg.content}
-                    </div>
-                  </div>
-                  {msg.role === "assistant" && msg.options && msg.options.length > 0 && (
-                    <div
-                      style={{
-                        maxWidth: "70%",
-                        marginLeft: "30%",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 8,
-                      }}
-                    >
-                      {msg.options!.map((opt, optIdx) => (
-                        <Button
-                          key={optIdx}
-                          block
-                          size="small"
-                          variant="outlined"
+                    <div style={{ display: "flex", alignItems: "flex-end", gap: 10, maxWidth: "75%" }}>
+                      {!isUser && (
+                        <div
                           style={{
-                            textAlign: "left",
-                            borderRadius: 20,
-                            height: "auto",
-                            padding: "6px 14px",
-                            borderColor: msg.suggest_start && optIdx === msg.options!.length - 1 ? "#165DFF" : "#d9d9d9",
-                            color: msg.suggest_start && optIdx === msg.options!.length - 1 ? "#165DFF" : "#555",
-                            fontWeight: msg.suggest_start && optIdx === msg.options!.length - 1 ? 500 : 400,
-                            background: msg.suggest_start && optIdx === msg.options!.length - 1 ? "#e6f4ff" : "#fff",
+                            width: 36,
+                            height: 36,
+                            borderRadius: "50%",
+                            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                            boxShadow: "0 2px 8px rgba(102, 126, 234, 0.3)",
                           }}
-                          onClick={() => handleOptionClick(opt, msg.suggest_start)}
                         >
-                          {msg.suggest_start && optIdx === msg.options!.length - 1 && (
-                            <CheckCircleOutlined style={{ marginRight: 6 }} />
-                          )}
-                          {opt}
-                        </Button>
+                          <RobotOutlined style={{ color: "#fff", fontSize: 18 }} />
+                        </div>
+                      )}
+
+                      <div
+                        style={{
+                          maxWidth: "100%",
+                          position: "relative",
+                        }}
+                      >
+                        <div
+                          style={{
+                            padding: "14px 18px",
+                            borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+                            background: isUser
+                              ? "linear-gradient(135deg, #165DFF 0%, #4080FF 100%)"
+                              : "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
+                            color: isUser ? "#fff" : "#1a1a1a",
+                            boxShadow: isUser
+                              ? "0 4px 12px rgba(22, 93, 255, 0.25)"
+                              : "0 2px 12px rgba(0, 0, 0, 0.08)",
+                            whiteSpace: "pre-wrap",
+                            wordBreak: "break-word",
+                            lineHeight: 1.6,
+                            fontSize: 14,
+                            border: isUser ? "none" : "1px solid #e8e8e8",
+                            transition: "all 0.2s ease",
+                          }}
+                        >
+                          {msg.content}
+                        </div>
+
+                        <div
+                          style={{
+                            marginTop: 6,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
+                            fontSize: 11,
+                            color: "#999",
+                            justifyContent: isUser ? "flex-end" : "flex-start",
+                            paddingLeft: isUser ? 0 : 4,
+                          }}
+                        >
+                          <ClockCircleOutlined style={{ fontSize: 10 }} />
+                          <span>{new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}</span>
+                        </div>
+                      </div>
+
+                      {isUser && (
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: "50%",
+                            background: "linear-gradient(135deg, #165DFF 0%, #4080FF 100%)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                            boxShadow: "0 2px 8px rgba(22, 93, 255, 0.3)",
+                          }}
+                        >
+                          <UserOutlined style={{ color: "#fff", fontSize: 16 }} />
+                        </div>
+                      )}
+                    </div>
+
+                    {showOptions && (
+                      <div
+                        style={{
+                          maxWidth: "65%",
+                          marginLeft: 46,
+                          marginTop: 10,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 10,
+                          animation: `fadeInUp 0.3s ease-out 0.1s both`,
+                        }}
+                      >
+                        {msg.options!.map((opt, optIdx) => {
+                          const isLastOption = optIdx === msg.options!.length - 1;
+                          const shouldHighlight = msg.suggest_start && isLastOption;
+
+                          return (
+                            <Button
+                              key={optIdx}
+                              block
+                              size="large"
+                              variant={shouldHighlight ? "filled" : "outlined"}
+                              style={{
+                                textAlign: "left",
+                                borderRadius: 16,
+                                height: "auto",
+                                padding: "10px 18px",
+                                borderColor: shouldHighlight ? "#165DFF" : "#e0e0e0",
+                                color: shouldHighlight ? "#165DFF" : "#555",
+                                fontWeight: shouldHighlight ? 600 : 400,
+                                background: shouldHighlight
+                                  ? "linear-gradient(135deg, #e6f4ff 0%, #bae7ff 100%)"
+                                  : "#fff",
+                                boxShadow: shouldHighlight
+                                  ? "0 2px 8px rgba(22, 93, 255, 0.15)"
+                                  : "0 1px 3px rgba(0, 0, 0, 0.05)",
+                                transition: "all 0.3s ease",
+                                border: shouldHighlight ? "1px solid #165DFF" : "1px solid #e8e8e8",
+                              }}
+                              onMouseEnter={(e) => {
+                                if (!shouldHighlight) {
+                                  e.currentTarget.style.borderColor = "#165DFF";
+                                  e.currentTarget.style.color = "#165DFF";
+                                  e.currentTarget.style.background = "#f0f5ff";
+                                  e.currentTarget.style.transform = "translateX(4px)";
+                                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(22, 93, 255, 0.15)";
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!shouldHighlight) {
+                                  e.currentTarget.style.borderColor = "#e0e0e0";
+                                  e.currentTarget.style.color = "#555";
+                                  e.currentTarget.style.background = "#fff";
+                                  e.currentTarget.style.transform = "translateX(0)";
+                                  e.currentTarget.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.05)";
+                                }
+                              }}
+                              onClick={() => handleOptionClick(opt, msg.suggest_start)}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                {shouldHighlight && (
+                                  <CheckCircleOutlined style={{ color: "#165DFF", fontSize: 16 }} />
+                                )}
+                                {!shouldHighlight && (
+                                  <div
+                                    style={{
+                                      width: 6,
+                                      height: 6,
+                                      borderRadius: "50%",
+                                      background: "#d9d9d9",
+                                    }}
+                                  />
+                                )}
+                                <span>{opt}</span>
+                              </div>
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {loading && (
+                <div style={{ display: "flex", alignItems: "flex-end", gap: 10, marginBottom: 24 }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: "50%",
+                      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      boxShadow: "0 2px 8px rgba(102, 126, 234, 0.3)",
+                    }}
+                  >
+                    <RobotOutlined style={{ color: "#fff", fontSize: 18 }} />
+                  </div>
+                  <div
+                    style={{
+                      padding: "14px 18px",
+                      borderRadius: "18px 18px 18px 4px",
+                      background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
+                      boxShadow: "0 2px 12px rgba(0, 0, 0, 0.08)",
+                      border: "1px solid #e8e8e8",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <Spin indicator={<LoadingOutlined style={{ fontSize: 14, color: "#165DFF" }} spin />} />
+                      <span style={{ color: "#555", fontSize: 14 }}>AI正在思考...</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 4, marginTop: 8 }}>
+                      {[0, 1, 2].map((i) => (
+                        <div
+                          key={i}
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: "50%",
+                            background: "#165DFF",
+                            animation: `bounce 1.4s infinite ease-in-out`,
+                            animationDelay: `${i * 0.16}s`,
+                          }}
+                        />
                       ))}
                     </div>
-                  )}
-                </div>
-              ))}
-              {loading && (
-                <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 16 }}>
-                  <div
-                    style={{
-                      padding: "12px 16px",
-                      borderRadius: 12,
-                      background: "#fff",
-                      boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-                    }}
-                  >
-                    <Spin indicator={<LoadingOutlined style={{ fontSize: 16 }} spin />}>思考中...</Spin>
                   </div>
                 </div>
               )}
