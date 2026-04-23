@@ -425,7 +425,7 @@ export default function CreateAppPage() {
                   type="link"
                   danger
                   icon={<DeleteOutlined />}
-                  onClick={() => handleDeleteHistory(item.id)},
+                  onClick={() => handleDeleteHistory(item.id)}
                 />,
               ]}
             >
