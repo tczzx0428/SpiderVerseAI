@@ -13,6 +13,7 @@ import {
   LogoutOutlined,
   ThunderboltOutlined,
   RobotOutlined,
+  ApiOutlined,
 } from "@ant-design/icons";
 import { logout, changePassword } from "@/api/auth";
 
@@ -41,6 +42,7 @@ export default function MainLayout() {
   const adminMenuItems = [
     { path: "/admin/users", icon: <UserOutlined />, label: "用户管理" },
     { path: "/admin/template", icon: <FileTextOutlined />, label: "代码规范Prompt" },
+    { path: "/admin/models", icon: <ApiOutlined />, label: "模型配置" },
     { path: "/admin/stats", icon: <BarChartOutlined />, label: "使用统计" },
   ];
 

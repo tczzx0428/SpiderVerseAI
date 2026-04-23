@@ -9,6 +9,7 @@ import HistoryPage from "@/pages/HistoryPage";
 import UserManagePage from "@/pages/admin/UserManagePage";
 import TemplateManagePage from "@/pages/admin/TemplateManagePage";
 import StatsPage from "@/pages/admin/StatsPage";
+import ModelConfigPage from "@/pages/admin/ModelConfigPage";
 import SkillsPage from "@/pages/SkillsPage";
 import CreateAppPage from "@/pages/CreateAppPage";
 
@@ -62,6 +63,14 @@ export default function App() {
             element={
               <AuthGuard requireAdmin>
                 <StatsPage />
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="admin/models"
+            element={
+              <AuthGuard requireAdmin>
+                <ModelConfigPage />
               </AuthGuard>
             }
           />
