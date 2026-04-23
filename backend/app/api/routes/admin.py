@@ -19,6 +19,10 @@ class TeamConfigUpdate(BaseModel):
     base_url: str | None = None
     codex_model: str | None = None
     openclaw_model: str | None = None
+    ai_api_key: str | None = None
+    ai_base_url: str | None = None
+    ai_model: str | None = None
+    ai_code_model: str | None = None
 
 
 @router.get("/skills")

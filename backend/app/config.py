@@ -15,7 +15,11 @@ class Settings(BaseSettings):
     team_base_url: str = ""
     codex_model: str = "gpt-5.2-codex"
     openclaw_model: str = "gpt-5.2"
-    allowed_origins: str = ""  # Comma-separated allowed CORS origins; empty = "*"
+    allowed_origins: str = ""
+    ai_api_key: str = ""
+    ai_base_url: str = ""
+    ai_model: str = "gpt-4o-mini"
+    ai_code_model: str = "gpt-4o"
 
     class Config:
         env_file = ".env"

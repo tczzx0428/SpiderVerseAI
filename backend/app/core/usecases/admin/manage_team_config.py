@@ -5,7 +5,8 @@ from app.core.entities.config import ConfigEntity, ConfigHistoryEntity
 from app.core.ports.config_repo import IConfigRepo
 from app.core.usecases.auth.get_team_config import TEAM_KEY_PREFIX
 
-ALLOWED_FIELDS = {"api_key", "base_url", "codex_model", "openclaw_model"}
+ALLOWED_FIELDS = {"api_key", "base_url", "codex_model", "openclaw_model",
+                  "ai_api_key", "ai_base_url", "ai_model", "ai_code_model"}
 
 
 class UpdateTeamConfig:

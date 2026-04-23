@@ -8,10 +8,11 @@ from app.infra.db.models import app_view as _app_view_model  # noqa: F401
 from app.infra.db.models import config as _config_model  # noqa: F401
 from app.infra.db.models import prompt as _prompt_model  # noqa: F401
 from app.infra.db.models import user as _user_model  # noqa: F401
+from app.infra.db.models import ai_creation as _ai_creation_model  # noqa: F401
 
 from app.api.middleware.cors import setup_cors
 from app.api.middleware.error_handler import setup_error_handlers
-from app.api.routes import admin, apps, auth, config as config_routes, prompts, skills, skills_cli, stats
+from app.api.routes import admin, apps, auth, config as config_routes, prompts, skills, skills_cli, stats, ai_create
 
 app = FastAPI(title="Tool Platform API", version="2.0.0")
 
@@ -26,6 +27,7 @@ app.include_router(config_routes.router)
 app.include_router(skills.router)
 app.include_router(skills_cli.router)
 app.include_router(stats.router)
+app.include_router(ai_create.router)
 
 
 @app.get("/api/health")

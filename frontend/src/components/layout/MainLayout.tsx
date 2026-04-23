@@ -12,6 +12,7 @@ import {
   LockOutlined,
   LogoutOutlined,
   ThunderboltOutlined,
+  RobotOutlined,
 } from "@ant-design/icons";
 import { logout, changePassword } from "@/api/auth";
 
@@ -31,6 +32,7 @@ export default function MainLayout() {
 
   const navItems = [
     { path: "/", icon: <HomeOutlined />, label: "首页" },
+    { path: "/create", icon: <RobotOutlined />, label: "创作应用" },
     { path: "/apps", icon: <AppstoreOutlined />, label: "应用管理" },
     { path: "/skills", icon: <ThunderboltOutlined />, label: "Skills 市场" },
     ...(!isAnnotator ? [{ path: "/history", icon: <HistoryOutlined />, label: "历史记录" }] : []),
