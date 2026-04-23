@@ -121,21 +121,55 @@ export default function CreateAppPage() {
     }
   };
 
-  const handleSend = async () => {
-    if (!inputValue.trim() || !currentId || loading) return;
+  const handleSend = async (text?: string) => {
+    const msgText = text || inputValue.trim();
+    if (!msgText || !currentId || loading) return;
 
-    const userMsg = inputValue.trim();
-    setInputValue("");
-    setMessages((prev) => [...prev, { role: "user", content: userMsg }]);
+    if (!text) setInputValue("");
+    setMessages((prev) => [...prev, { role: "user", content: msgText }]);
     setLoading(true);
 
     try {
-      const res = await sendMessage(currentId, userMsg);
-      setMessages(res.data.conversation);
+      const res = await sendMessage(currentId, msgText);
+      const updatedConversation = res.data.conversation;
+      if (res.data.options && res.data.options.length > 0) {
+        const lastAssistantMsg = updatedConversation.filter(m => m.role === "assistant").pop();
+        if (lastAssistantMsg) {
+          lastAssistantMsg.options = res.data.options;
+          lastAssistantMsg.suggest_start = res.data.suggest_start;
+        }
+      }
+      setMessages(updatedConversation);
     } catch (e: any) {
       message.error(e.response?.data?.detail || "发送失败");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOptionClick = (option: string, suggestStart?: boolean) => {
+    if (suggestStart || option.includes("开始制作") || option.includes("开始创建") || option.includes("就这样")) {
+      Modal.confirm({
+        title: "确认开始创建？",
+        content: "确认后AI将根据你的需求自动生成代码并部署应用",
+        okText: "开始创建",
+        cancelText: "再聊聊",
+        onOk: async () => {
+          if (!currentId) return;
+          try {
+            setLoading(true);
+            await startCreation(currentId);
+            setPolling(true);
+            message.info("正在分析需求并生成代码...");
+          } catch (e: any) {
+            message.error(e.response?.data?.detail || "启动失败");
+          } finally {
+            setLoading(false);
+          }
+        },
+      });
+    } else {
+      handleSend(option);
     }
   };
 
@@ -198,7 +232,7 @@ export default function CreateAppPage() {
           body: { flex: 1, display: "flex", flexDirection: "column", padding: 0, overflow: "hidden", minHeight: 0 },
         }}
         extra={
-          status?.status === "chatting" && messages.length > 0 ? (
+          status?.status === "chatting" && messages.length > 1 ? (
             <Button type="primary" icon={<CheckCircleOutlined />} onClick={handleStartCreate}>
               确认需求，开始创作
             </Button>
@@ -228,28 +262,65 @@ export default function CreateAppPage() {
                 </div>
               )}
               {messages.map((msg, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    marginBottom: 16,
-                    display: "flex",
-                    justifyContent: msg.role === "user" ? "flex-end" : "flex-start",
-                  }}
-                >
+                <div key={idx} style={{ marginBottom: msg.role === "assistant" && msg.options ? 8 : 16 }}>
                   <div
                     style={{
-                      maxWidth: "70%",
-                      padding: "12px 16px",
-                      borderRadius: 12,
-                      background: msg.role === "user" ? "#165DFF" : "#fff",
-                      color: msg.role === "user" ? "#fff" : "#1a1a1a",
-                      boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "break-word",
+                      marginBottom: msg.options ? 8 : 0,
+                      display: "flex",
+                      justifyContent: msg.role === "user" ? "flex-end" : "flex-start",
                     }}
                   >
-                    {msg.content}
+                    <div
+                      style={{
+                        maxWidth: "70%",
+                        padding: "12px 16px",
+                        borderRadius: 12,
+                        background: msg.role === "user" ? "#165DFF" : "#fff",
+                        color: msg.role === "user" ? "#fff" : "#1a1a1a",
+                        boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {msg.content}
+                    </div>
                   </div>
+                  {msg.role === "assistant" && msg.options && msg.options.length > 0 && (
+                    <div
+                      style={{
+                        maxWidth: "70%",
+                        marginLeft: "30%",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                      }}
+                    >
+                      {msg.options!.map((opt, optIdx) => (
+                        <Button
+                          key={optIdx}
+                          block
+                          size="small"
+                          variant="outlined"
+                          style={{
+                            textAlign: "left",
+                            borderRadius: 20,
+                            height: "auto",
+                            padding: "6px 14px",
+                            borderColor: msg.suggest_start && optIdx === msg.options!.length - 1 ? "#165DFF" : "#d9d9d9",
+                            color: msg.suggest_start && optIdx === msg.options!.length - 1 ? "#165DFF" : "#555",
+                            fontWeight: msg.suggest_start && optIdx === msg.options!.length - 1 ? 500 : 400,
+                            background: msg.suggest_start && optIdx === msg.options!.length - 1 ? "#e6f4ff" : "#fff",
+                          }}
+                          onClick={() => handleOptionClick(opt, msg.suggest_start)}
+                        >
+                          {msg.suggest_start && optIdx === msg.options!.length - 1 && (
+                            <CheckCircleOutlined style={{ marginRight: 6 }} />
+                          )}
+                          {opt}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
               {loading && (
@@ -301,7 +372,7 @@ export default function CreateAppPage() {
                 <Button
                   type="primary"
                   icon={<SendOutlined />}
-                  onClick={handleSend}
+                  onClick={() => handleSend()}
                   loading={loading}
                   disabled={!inputValue.trim()}
                 >

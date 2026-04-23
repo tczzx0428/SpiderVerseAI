@@ -23,6 +23,8 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     reply: str
     conversation: list
+    options: list[str] = []
+    suggest_start: bool = False
 
 
 class StartCreateRequest(BaseModel):
@@ -75,12 +77,21 @@ def chat(req: ChatRequest,
         conversation = creation.conversation or []
         conversation.append({"role": "user", "content": req.message})
 
-        reply = _ai_chat.chat(conversation, req.message)
-        conversation.append({"role": "assistant", "content": reply})
+        reply_data = _ai_chat.chat(conversation, req.message)
+        reply_text = reply_data.get("content", "") if isinstance(reply_data, dict) else str(reply_data)
+        options = reply_data.get("options", []) if isinstance(reply_data, dict) else []
+        suggest_start = reply_data.get("suggest_start", False) if isinstance(reply_data, dict) else False
+
+        conversation.append({"role": "assistant", "content": reply_text})
 
         repo.update_conversation(req.creation_id, conversation)
 
-        return ChatResponse(reply=reply, conversation=conversation)
+        return ChatResponse(
+            reply=reply_text,
+            conversation=conversation,
+            options=options,
+            suggest_start=suggest_start,
+        )
     finally:
         db.close()
 

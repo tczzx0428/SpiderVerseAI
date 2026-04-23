@@ -14,11 +14,15 @@ export interface AICreation {
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  options?: string[];
+  suggest_start?: boolean;
 }
 
 export interface ChatResponse {
   reply: string;
   conversation: ChatMessage[];
+  options: string[];
+  suggest_start: boolean;
 }
 
 export const createNewSession = (title?: string) =>
