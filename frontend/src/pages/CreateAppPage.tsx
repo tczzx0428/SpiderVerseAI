@@ -62,10 +62,14 @@ export default function CreateAppPage() {
   const [historyLoading, setHistoryLoading] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    if (messagesEndRef.current && messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: "smooth",
+      });
     }
   }, [messages]);
 
@@ -180,8 +184,7 @@ export default function CreateAppPage() {
   };
 
   const renderChatView = () => (
-    <div style={{ display: "flex", gap: 24, height: "calc(100vh - 180px)" }}>
-      {/* 对话区域 */}
+    <div style={{ display: "flex", gap: 24, flex: 1, minHeight: 0 }}>
       <Card
         title={
           <Space>
@@ -190,8 +193,10 @@ export default function CreateAppPage() {
             {status && <Tag color={STATUS_MAP[status.status]?.color}>{STATUS_MAP[status.status]?.label}</Tag>}
           </Space>
         }
-        style={{ flex: 1, display: "flex", flexDirection: "column" }}
-        styles={{ body: { flex: 1, display: "flex", flexDirection: "column", padding: 0, overflow: "hidden" } }}
+        style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
+        styles={{
+          body: { flex: 1, display: "flex", flexDirection: "column", padding: 0, overflow: "hidden", minHeight: 0 },
+        }}
         extra={
           status?.status === "chatting" && messages.length > 0 ? (
             <Button type="primary" icon={<CheckCircleOutlined />} onClick={handleStartCreate}>
@@ -200,8 +205,10 @@ export default function CreateAppPage() {
           ) : null
         }
       >
-        {/* 消息列表 */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "16px 24px", background: "#fafafa" }}>
+        <div
+          ref={messagesContainerRef}
+          style={{ flex: 1, overflowY: "auto", padding: "16px 24px", background: "#fafafa" }}
+        >
           {!currentId ? (
             <Empty
               description="点击「新建对话」开始与AI助手交流"
@@ -264,13 +271,13 @@ export default function CreateAppPage() {
           )}
         </div>
 
-        {/* 输入区域 */}
         {currentId && status?.status === "chatting" && (
           <div
             style={{
               padding: "16px 24px",
               borderTop: "1px solid #f0f0f0",
               background: "#fff",
+              flexShrink: 0,
             }}
           >
             <Input.TextArea
@@ -306,11 +313,10 @@ export default function CreateAppPage() {
         )}
       </Card>
 
-      {/* 状态面板 */}
       {(status && status.status !== "chatting") && (
         <Card
           title="创建进度"
-          style={{ width: 360 }}
+          style={{ width: 360, flexShrink: 0 }}
           styles={{ body: { padding: 16 } }}
         >
           {status.status === "failed" ? (
@@ -419,7 +425,7 @@ export default function CreateAppPage() {
                   type="link"
                   danger
                   icon={<DeleteOutlined />}
-                  onClick={() => handleDeleteHistory(item.id)}
+                  onClick={() => handleDeleteHistory(item.id)},
                 />,
               ]}
             >
@@ -445,32 +451,36 @@ export default function CreateAppPage() {
   );
 
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <Title level={3} style={{ margin: 0 }}>
-          <RobotOutlined style={{ marginRight: 8 }} />
-          创作应用
-        </Title>
-        <Space>
-          <Button
-            type={view === "chat" ? "primary" : "default"}
-            onClick={() => setView("chat")}
-          >
-            对话
-          </Button>
-          <Button
-            type={view === "history" ? "primary" : "default"}
-            onClick={() => { setView("history"); loadHistory(); }}
-          >
-            <HistoryOutlined /> 历史
-          </Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleNewChat} loading={loading}>
-            新建对话
-          </Button>
-        </Space>
+    <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 120px)" }}>
+      <div style={{ flexShrink: 0, marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Title level={3} style={{ margin: 0 }}>
+            <RobotOutlined style={{ marginRight: 8 }} />
+            创作应用
+          </Title>
+          <Space>
+            <Button
+              type={view === "chat" ? "primary" : "default"}
+              onClick={() => setView("chat")}
+            >
+              对话
+            </Button>
+            <Button
+              type={view === "history" ? "primary" : "default"}
+              onClick={() => { setView("history"); loadHistory(); }}
+            >
+              <HistoryOutlined /> 历史
+            </Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleNewChat} loading={loading}>
+              新建对话
+            </Button>
+          </Space>
+        </div>
       </div>
 
-      {view === "chat" ? renderChatView() : renderHistoryView()}
+      <div style={{ flex: 1, minHeight: 0 }}>
+        {view === "chat" ? renderChatView() : renderHistoryView()}
+      </div>
     </div>
   );
 }

@@ -11,4 +11,5 @@ bcrypt==4.2.1
 python-multipart==0.0.12
 docker==7.1.0
 aiofiles==24.1.0
-openai>=1.30.0,<1.50.0
+openai>=1.30.0,<1.45.0
+httpx>=0.24.0,<0.27.0
