@@ -14,7 +14,7 @@ function log($msg)  { Write-Host "   ·  $msg" -ForegroundColor DarkGray }
 function warn($msg) { Write-Host "  [!] $msg" -ForegroundColor Yellow }
 
 Write-Host ""
-Write-Host "  PE Space 团队环境安装" -ForegroundColor White
+Write-Host "  PulseTeach AI 团队环境安装" -ForegroundColor White
 Write-Host ""
 
 # ── Node.js ───────────────────────────────────────────────────────────────────
@@ -138,16 +138,18 @@ if (-Not $started) {
   warn "Gateway 可能还在启动，稍后运行 'openclaw gateway status' 确认"
 }
 
-# ── PE Space CLI ──────────────────────────────────────────────────────────────
-log "安装 PE Space CLI..."
+# ── PulseTeach AI CLI ──────────────────────────────────────────────────────────
+log "安装 PulseTeach AI CLI..."
 $peBinDir = "$env:USERPROFILE\.local\bin"
 New-Item -ItemType Directory -Force -Path $peBinDir | Out-Null
 $peScript = "$peBinDir\pe"
+$ptScript = "$peBinDir\pt"
 try {
   Invoke-WebRequest -Uri "$SETUP_BASE/pe" -OutFile $peScript
-  ok "PE CLI 已下载到 $peScript"
+  Copy-Item $peScript $ptScript -Force
+  ok "pt CLI 已下载到 $ptScript"
 } catch {
-  warn "PE CLI 下载失败，请稍后手动安装"
+  warn "pt CLI 下载失败，请稍后手动安装"
 }
 
 # 确保 PATH 包含 ~/.local/bin
@@ -161,28 +163,28 @@ if ($userPath -notlike "*$peBinDir*") {
 # 安装 requests 依赖
 try { python -m pip install requests -q 2>$null } catch {}
 try { python3 -m pip install requests -q 2>$null } catch {}
-ok "PE CLI 依赖已安装"
+ok "pt CLI 依赖已安装"
 
-# ── PE Space 登录 ─────────────────────────────────────────────────────────────
+# ── PulseTeach AI 登录 ─────────────────────────────────────────────────────────
 Write-Host ""
-Write-Host "  登录 PE Space 平台  (http://YOUR_PLATFORM_HOST)" -ForegroundColor White
+Write-Host "  登录 PulseTeach AI 平台  (http://YOUR_PLATFORM_HOST)" -ForegroundColor White
 Write-Host "  账号格式：姓名全拼，密码：全拼+123"
 Write-Host ""
 try {
-  python $peScript login --url "http://YOUR_PLATFORM_HOST"
+  python $ptScript login --url "http://YOUR_PLATFORM_HOST"
 } catch {
-  warn "PE Space 登录失败，请稍后运行: pe login --url http://YOUR_PLATFORM_HOST"
+  warn "PulseTeach AI 登录失败，请稍后运行: pt login --url http://YOUR_PLATFORM_HOST"
 }
 
-# ── 安装 PE Space Skill ───────────────────────────────────────────────────────
-$skillDir = "$env:USERPROFILE\.openclaw\workspace\skills\pe-space"
+# ── 安装 PulseTeach AI Skill ───────────────────────────────────────────────────
+$skillDir = "$env:USERPROFILE\.openclaw\workspace\skills\pt-space"
 if (-Not (Test-Path $skillDir)) {
   New-Item -ItemType Directory -Force -Path $skillDir | Out-Null
   try {
-    Invoke-WebRequest -Uri "$SETUP_BASE/pe-space-skill.md" -OutFile "$skillDir\SKILL.md"
-    ok "PE Space Skill 已安装"
+    Invoke-WebRequest -Uri "$SETUP_BASE/pt-space-skill.md" -OutFile "$skillDir\SKILL.md"
+    ok "PulseTeach AI Skill 已安装"
   } catch {
-    warn "PE Space Skill 下载失败"
+    warn "PulseTeach AI Skill 下载失败"
   }
 }
 
@@ -197,5 +199,5 @@ try {
   $setupContent = Get-Content $tmpSetup -Raw
   codex "请读取以下安装指南并执行验证：$setupContent"
 } catch {
-  codex "环境安装完成，请验证 Node.js、Codex、OpenClaw、pe 命令均正常，有问题自动修复，中文沟通。"
+  codex "环境安装完成，请验证 Node.js、Codex、OpenClaw、pt 命令均正常，有问题自动修复，中文沟通。"
 }

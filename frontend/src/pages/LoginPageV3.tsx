@@ -113,13 +113,13 @@ export default function LoginPageV3() {
               display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: 17, fontWeight: 800, color: "#0a0a0a", letterSpacing: "-0.5px",
               boxShadow: "0 8px 28px rgba(255,255,255,0.2)",
-            }}>SV</div>
+            }}>PT</div>
             <div style={{ textAlign: "left" }}>
               <div style={{ fontSize: 21, fontWeight: 700, color: "#fff", letterSpacing: "-0.3px" }}>
-                SpiderVerseAI
+                PulseTeach AI
               </div>
               <div style={{ fontSize: 11, color: "rgba(255,255,255,0.38)", marginTop: 1, letterSpacing: "0.5px" }}>
-                灵感宇宙 · AI 创作平台
+                律动课堂 · AI 创课平台
               </div>
             </div>
           </div>
@@ -128,10 +128,12 @@ export default function LoginPageV3() {
             fontSize: 28, fontWeight: 800, color: "#fff",
             margin: "0 0 10px", letterSpacing: "-0.8px", lineHeight: 1.2,
           }}>
-            AI 驱动，一键生成
+            律动课堂，让教学灵感不打烊。
           </h1>
           <p style={{ fontSize: 14, color: "rgba(255,255,255,0.42)", margin: 0, lineHeight: 1.7 }}>
-            从灵感到产品，只需一句话。<br />AI 自动完成构建、部署、上线全流程。
+            在这里，AI 守护你的教育初心，让创意不再被繁琐的流程困住。<br />
+            一句自然语言，AI 帮你完成「构建 → 部署 → 上线」全流程。<br />
+            零代码，也能打造惊艳的互动教学工具，让课堂节奏随心掌控。
           </p>
         </div>
 

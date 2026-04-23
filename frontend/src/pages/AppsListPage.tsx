@@ -53,7 +53,7 @@ function AppCard({
     if (isRunning && app.access_url) {
       const uname = useAuthStore.getState().user?.username || "";
       const sep = app.access_url.includes("?") ? "&" : "?";
-      const url = app.access_url + sep + "sv_user=" + encodeURIComponent(uname);
+      const url = app.access_url + sep + "pt_user=" + encodeURIComponent(uname);
       // 记录一次访问
       client.post(`/apps/internal/view/${app.id}`, { username: uname }).catch(() => {});
       window.open(url, "_blank");
@@ -556,7 +556,7 @@ export default function AppsListPage() {
               {detailApp.status === "running" && detailApp.access_url && (
                 <div style={{ display: "flex", gap: 12 }}>
                   <span style={{ color: "#999", width: 64 }}>访问地址</span>
-                  <a href={detailApp.access_url + "?sv_user=" + encodeURIComponent(user?.username || "")} target="_blank" rel="noreferrer">
+                  <a href={detailApp.access_url + "?pt_user=" + encodeURIComponent(user?.username || "")} target="_blank" rel="noreferrer">
                     {window.location.origin + detailApp.access_url}
                   </a>
                 </div>

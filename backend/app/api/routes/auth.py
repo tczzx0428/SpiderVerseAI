@@ -29,7 +29,7 @@ def login(body: LoginRequest, response: Response,
     user = result["user"]
 
     response.set_cookie(
-        key="sv_token", value=token,
+        key="pt_token", value=token,
         max_age=settings.jwt_expire_seconds, path="/",
         samesite="lax", httponly=True,  # Security fix: httpOnly=True
     )
@@ -43,7 +43,7 @@ def login(body: LoginRequest, response: Response,
 
 @router.post("/logout")
 def logout(response: Response):
-    response.delete_cookie(key="sv_token", path="/")
+    response.delete_cookie(key="pt_token", path="/")
     return {"message": "已退出"}
 
 
@@ -73,7 +73,7 @@ def change_password(body: ChangePasswordRequest,
 
 @router.get("/verify-app")
 def verify_app(request: Request, c: Container = Depends(get_container)):
-    token = request.cookies.get("sv_token")
+    token = request.cookies.get("pt_token")
     result = c.verify_app_access.execute(token)
     if not result:
         return Response(status_code=status.HTTP_401_UNAUTHORIZED)
@@ -86,9 +86,9 @@ def verify_app(request: Request, c: Container = Depends(get_container)):
     return Response(
         status_code=200,
         headers={
-            "X-SV-User": result["username"],
-            "X-SV-Role": result["role"],
-            "X-SV-User-Id": str(result["user_id"]),
+            "X-PT-User": result["username"],
+            "X-PT-Role": result["role"],
+            "X-PT-User-Id": str(result["user_id"]),
         },
     )
 

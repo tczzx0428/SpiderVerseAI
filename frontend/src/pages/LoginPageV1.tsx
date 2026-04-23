@@ -173,13 +173,13 @@ export default function LoginPageV1() {
               display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: 17, fontWeight: 800, color: "#0a0a0a", letterSpacing: "-0.5px",
               flexShrink: 0, boxShadow: "0 8px 32px rgba(255,255,255,0.15)",
-            }}>SV</div>
+            }}>PT</div>
             <div>
               <div style={{ fontSize: 20, fontWeight: 700, color: "#fff", letterSpacing: "-0.3px" }}>
-                SpiderVerseAI
+                PulseTeach AI
               </div>
               <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginTop: 2, letterSpacing: "1px" }}>
-                专为中小学教师打造的 AI 创课平台
+                律动课堂 · AI 创课平台
               </div>
             </div>
           </div>
@@ -190,14 +190,14 @@ export default function LoginPageV1() {
               fontSize: 40, fontWeight: 800, color: "#fff", letterSpacing: "-1.5px",
               margin: "0 0 18px", lineHeight: 1.12,
             }}>
-              把时间还给课堂<br />把灵感还给<span style={{ background: "linear-gradient(135deg,#a78bfa,#818cf8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>教育</span>
+              律动课堂，让教学灵感不打烊。
             </h1>
             <p style={{ fontSize: 15, color: "rgba(255,255,255,0.5)", margin: 0, lineHeight: 1.85, maxWidth: 400 }}>
-              在这里，每一份教育初心都能被 AI 守护。<br />
-              用自然语言描述你的创意，AI 帮你完成
-              <span style={{ color: "rgba(167,139,250,0.75)" }}> 构建 → 部署 → 上线</span>
+              在这里，AI 守护你的教育初心，让创意不再被繁琐的流程困住。<br />
+              一句自然语言，AI 帮你完成
+              <span style={{ color: "rgba(167,139,250,0.75)" }}>「构建 → 部署 → 上线」</span>
               全流程。<br />
-              不懂代码，也能做出惊艳的互动教学工具。
+              零代码，也能打造惊艳的互动教学工具，让课堂节奏随心掌控。
             </p>
           </div>
 
@@ -266,7 +266,7 @@ export default function LoginPageV1() {
               欢迎回来
             </h2>
             <p style={{ fontSize: 13, color: "#999", margin: 0 }}>
-              登录后开始创建你的AI工具
+              登录后开始打造你的互动教学工具
             </p>
           </div>
 

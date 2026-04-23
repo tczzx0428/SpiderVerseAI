@@ -1,0 +1,1063 @@
+#!/usr/bin/env python3
+# PulseTeach AI CLI — AI 教学工具平台命令行工具
+# 用法: pt <command> [options]
+
+import sys
+import os
+import json
+import zipfile
+import tempfile
+import time
+import shutil
+from pathlib import Path
+from urllib.parse import urljoin
+
+# ── 自动安装 requests ──────────────────────────────────────────────────────────
+try:
+    import requests
+except ImportError:
+    import subprocess
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "requests", "-q"])
+    import requests
+
+# ── 常量 ──────────────────────────────────────────────────────────────────────
+CONFIG_FILE  = Path.home() / ".pe" / "config.json"
+APPS_DIR     = Path.home() / "Desktop" / "pe-apps"
+META_FILE    = ".pe-space.json"
+EXCLUDE_DIRS = {".git", "__pycache__", ".venv", "venv", "node_modules", ".mypy_cache", ".pytest_cache"}
+EXCLUDE_EXTS = {".pyc", ".pyo", ".DS_Store"}
+
+# ── 配置读写 ──────────────────────────────────────────────────────────────────
+def load_config() -> dict:
+    if CONFIG_FILE.exists():
+        return json.loads(CONFIG_FILE.read_text())
+    return {}
+
+def save_config(cfg: dict):
+    CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    CONFIG_FILE.write_text(json.dumps(cfg, indent=2, ensure_ascii=False))
+
+def get_url() -> str:
+    cfg = load_config()
+    url = cfg.get("url", "")
+    if not url:
+        print("❌ 未登录，请先运行: pt login --url http://YOUR_PLATFORM_HOST")
+        sys.exit(1)
+    return url.rstrip("/")
+
+def get_token() -> str:
+    cfg = load_config()
+    token = cfg.get("token", "")
+    if not token:
+        print("❌ 未登录，请先运行: pt login")
+        sys.exit(1)
+    return token
+
+# ── HTTP 工具 ─────────────────────────────────────────────────────────────────
+def api(method: str, path: str, **kwargs) -> requests.Response:
+    url   = get_url()
+    token = get_token()
+    headers = kwargs.pop("headers", {})
+    headers["Authorization"] = f"Bearer {token}"
+    try:
+        r = requests.request(method, url + path, headers=headers, timeout=60, **kwargs)
+    except requests.ConnectionError:
+        print(f"❌ 无法连接到 {url}，请检查网络或平台地址")
+        sys.exit(1)
+    return r
+
+def check(r: requests.Response, ok_codes=(200, 201, 202, 204)):
+    if r.status_code not in ok_codes:
+        try:
+            detail = r.json().get("detail", r.text)
+        except Exception:
+            detail = r.text
+        print(f"❌ 请求失败 ({r.status_code}): {detail}")
+        sys.exit(1)
+    return r
+
+# ── 工具函数 ──────────────────────────────────────────────────────────────────
+def find_app_by_slug(slug: str) -> dict:
+    r = check(api("get", "/api/apps", params={"size": 200}))
+    items = r.json().get("items", [])
+    for item in items:
+        if item["slug"] == slug:
+            return item
+    print(f"❌ 找不到应用: {slug}")
+    sys.exit(1)
+
+def make_zip(src_dir: Path) -> str:
+    tmp = tempfile.mktemp(suffix=".zip")
+    with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zf:
+        for f in src_dir.rglob("*"):
+            # 排除目录本身
+            if f.is_dir():
+                continue
+            # 排除隐藏文件和特定目录/扩展名
+            parts = f.relative_to(src_dir).parts
+            if any(p in EXCLUDE_DIRS or p.startswith(".") for p in parts):
+                continue
+            if f.suffix in EXCLUDE_EXTS or f.name in {".DS_Store", META_FILE}:
+                continue
+            zf.write(f, f.relative_to(src_dir))
+    return tmp
+
+def fmt_status(s: str) -> str:
+    icons = {"running": "🟢", "stopped": "🔴", "building": "🟡", "failed": "❌", "pending": "⏳"}
+    return f"{icons.get(s, '❓')} {s}"
+
+def fmt_size(size_bytes: int) -> str:
+    """Format file size in human-readable form."""
+    if size_bytes < 1024:
+        return f"{size_bytes}B"
+    elif size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f}KB"
+    else:
+        return f"{size_bytes / (1024 * 1024):.1f}MB"
+
+def lookup_user_id(id_or_username: str) -> int:
+    """If id_or_username is a number return it as int; otherwise look up by username."""
+    if id_or_username.isdigit():
+        return int(id_or_username)
+    r = check(api("get", "/api/admin/users"))
+    users = r.json()
+    for u in users:
+        if u["username"] == id_or_username:
+            return u["id"]
+    print(f"❌ 找不到用户: {id_or_username}")
+    sys.exit(1)
+
+# ── AI 配置同步 ──────────────────────────────────────────────────────────────
+def _sync_ai_config(url: str, token: str):
+    """从后端拉取团队 AI 配置并写入 Codex / OpenClaw / Skills"""
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 拉取 team-config
+    tc = requests.get(f"{url}/api/auth/team-config", headers=headers, timeout=10)
+    if tc.status_code != 200:
+        print(f"⚠️  获取 team-config 失败: {tc.status_code}")
+        return
+    tc_data = tc.json()
+    api_key        = tc_data.get("api_key", "")
+    base_url       = tc_data.get("base_url", "")
+    codex_model    = tc_data.get("codex_model", "gpt-5.2-codex")
+    openclaw_model = tc_data.get("openclaw_model", "gpt-5.2")
+
+    if not api_key:
+        print("⚠️  服务器未配置 TEAM_API_KEY，跳过")
+        return
+
+    # 写 Codex 配置
+    codex_dir = Path.home() / ".codex"
+    codex_dir.mkdir(exist_ok=True)
+    (codex_dir / "auth.json").write_text(
+        json.dumps({"OPENAI_API_KEY": api_key}))
+    (codex_dir / "config.toml").write_text(
+        f'model_provider = "team"\n'
+        f'model = "{codex_model}"\n'
+        f'model_reasoning_effort = "high"\n'
+        f'disable_response_storage = true\n'
+        f'preferred_auth_method = "apikey"\n\n'
+        f'[model_providers.team]\n'
+        f'name = "team"\n'
+        f'base_url = "{base_url}"\n'
+        f'wire_api = "responses"\n'
+    )
+
+    # 写 OpenClaw 配置
+    oclaw_cfg = Path.home() / ".openclaw" / "openclaw.json"
+    if oclaw_cfg.exists():
+        try:
+            oc = json.loads(oclaw_cfg.read_text())
+            providers = oc.setdefault("models", {}).setdefault("providers", {})
+            no_provider_yet = not providers
+            providers["team"] = {
+                "baseUrl": base_url, "apiKey": api_key,
+                "api": "openai-completions",
+                "models": [{"id": openclaw_model, "name": "GPT-5.2 (Team)",
+                            "contextWindow": 1000000, "maxTokens": 16000,
+                            "reasoning": False, "input": ["text"],
+                            "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}}]
+            }
+            if no_provider_yet:
+                oc.setdefault("agents", {}).setdefault("defaults", {})["model"] = {
+                    "primary": f"team/{openclaw_model}"
+                }
+            oclaw_cfg.write_text(json.dumps(oc, indent=2, ensure_ascii=False))
+        except Exception as e:
+            print(f"⚠️  OpenClaw 配置写入失败: {e}")
+
+    # 同步 skills
+    try:
+        sr = requests.get(f"{url}/api/auth/skills", headers=headers, timeout=10)
+        if sr.status_code == 200:
+            skills_base = Path.home() / ".openclaw" / "skills"
+            synced = []
+            for skill in sr.json():
+                sname = skill.get("name", "").strip()
+                scontent = skill.get("content", "")
+                if not sname:
+                    continue
+                skill_dir = skills_base / sname
+                skill_dir.mkdir(parents=True, exist_ok=True)
+                (skill_dir / "SKILL.md").write_text(scontent, encoding="utf-8")
+                synced.append(sname)
+            if synced:
+                print(f"   Skills 已同步: {', '.join(synced)}")
+    except Exception:
+        pass
+
+    print("   AI 配置已同步")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 命令实现
+# ══════════════════════════════════════════════════════════════════════════════
+
+def cmd_login(args):
+    import argparse
+    p = argparse.ArgumentParser()
+    p.add_argument("--url", default="http://YOUR_PLATFORM_HOST")
+    p.add_argument("--username", default=None)
+    p.add_argument("--password", default=None)
+    opts = p.parse_args(args)
+    url = opts.url.rstrip("/")
+
+    username = opts.username or input("账号: ").strip()
+    password = opts.password or input("密码: ").strip()
+
+    try:
+        r = requests.post(f"{url}/api/auth/login",
+                          json={"username": username, "password": password},
+                          timeout=10)
+    except requests.ConnectionError:
+        print(f"❌ 无法连接到 {url}")
+        sys.exit(1)
+
+    if r.status_code != 200:
+        try:
+            detail = r.json().get("detail", r.text)
+        except Exception:
+            detail = r.text
+        print(f"❌ 登录失败: {detail}")
+        sys.exit(1)
+
+    data = r.json()
+    cfg = {"url": url, "token": data["access_token"], "username": data["user"]["username"]}
+    save_config(cfg)
+    role = data["user"].get("role", "")
+    print(f"✅ 登录成功！欢迎 {data['user']['username']} ({role})")
+    print(f"   平台: {url}")
+
+    # 拉取团队 AI 配置并写入 Codex / OpenClaw
+    try:
+        _sync_ai_config(url, data["access_token"])
+    except Exception:
+        pass
+
+
+def cmd_logout(_args):
+    try:
+        api("post", "/api/auth/logout")
+    except SystemExit:
+        pass
+    cfg = load_config()
+    cfg.pop("token", None)
+    save_config(cfg)
+    print("✅ 已退出登录")
+
+
+def cmd_whoami(_args):
+    r = check(api("get", "/api/auth/me"))
+    u = r.json()
+    cfg = load_config()
+    print(f"用户名: {u['username']}")
+    print(f"角色:   {u['role']}")
+    print(f"状态:   {'正常' if u['is_active'] else '已禁用'}")
+    print(f"平台:   {cfg.get('url', '')}")
+
+
+def cmd_sync_config(_args):
+    """同步团队 AI 配置到本地 Codex / OpenClaw（已登录时使用）"""
+    cfg = load_config()
+    token = cfg.get("token", "")
+    url = cfg.get("url", "").rstrip("/")
+    if not token:
+        print("❌ 未登录，请先运行 pt login")
+        sys.exit(1)
+    try:
+        _sync_ai_config(url, token)
+        print("✅ AI 配置已同步（Codex + OpenClaw）")
+    except Exception as e:
+        print(f"❌ 同步失败: {e}")
+        sys.exit(1)
+
+
+def cmd_config(args):
+    """查看或更新团队 AI 配置"""
+    sub = args[0] if args else "get"
+    rest = args[1:]
+
+    if sub in ("get", "show"):
+        r = check(api("get", "/api/auth/team-config"))
+        data = r.json()
+        print("团队 AI 配置:")
+        for key, value in data.items():
+            display = value
+            if key == "api_key" and value and len(value) > 8:
+                display = value[:4] + "***" + value[-4:]
+            print(f"  {key}: {display}")
+        return
+
+    if sub == "set":
+        import argparse
+        p = argparse.ArgumentParser()
+        p.add_argument("--api-key", default=None)
+        p.add_argument("--base-url", default=None)
+        p.add_argument("--codex-model", default=None)
+        p.add_argument("--openclaw-model", default=None)
+        opts = p.parse_args(rest)
+        body = {}
+        if opts.api_key is not None:       body["api_key"] = opts.api_key
+        if opts.base_url is not None:      body["base_url"] = opts.base_url
+        if opts.codex_model is not None:   body["codex_model"] = opts.codex_model
+        if opts.openclaw_model is not None: body["openclaw_model"] = opts.openclaw_model
+        if not body:
+            print("❌ 请提供至少一个要更新的字段")
+            sys.exit(1)
+        r = check(api("put", "/api/admin/team-config", json=body))
+        updated = r.json().get("updated", [])
+        print(f"✅ 已更新: {', '.join(updated)}")
+        return
+
+    print(f"❌ 未知子命令: {sub}")
+    print("用法: pt config [get|set --api-key K --base-url U ...]")
+    sys.exit(1)
+
+
+def cmd_status(_args):
+    """检查平台连通性和登录状态，类似 ping。"""
+    cfg = load_config()
+    url = cfg.get("url", "").rstrip("/")
+    token = cfg.get("token", "")
+    if not url or not token:
+        print("❌ 未登录，请先运行: pt login")
+        sys.exit(1)
+    try:
+        r = requests.get(f"{url}/api/auth/me",
+                         headers={"Authorization": f"Bearer {token}"},
+                         timeout=10)
+        if r.status_code == 200:
+            u = r.json()
+            print(f"✅ 平台连接正常")
+            print(f"   平台地址: {url}")
+            print(f"   登录用户: {u['username']} ({u['role']})")
+            print(f"   服务状态: OK")
+        else:
+            print(f"⚠️  平台响应异常 ({r.status_code})")
+            print(f"   平台地址: {url}")
+            print(f"   服务状态: 异常")
+    except requests.ConnectionError:
+        print(f"❌ 无法连接到平台")
+        print(f"   平台地址: {url}")
+        print(f"   服务状态: 无法访问")
+        sys.exit(1)
+
+
+def cmd_list(args):
+    import argparse
+    p = argparse.ArgumentParser()
+    p.add_argument("--status", help="过滤状态: running/stopped/building/failed")
+    opts = p.parse_args(args)
+    params = {"size": 200}
+    if opts.status:
+        params["status"] = opts.status
+    r = check(api("get", "/api/apps", params=params))
+    data = r.json()
+    items = data.get("items", [])
+    if not items:
+        print("暂无应用")
+        return
+    platform_url = get_url()
+    print(f"{'ID':<5} {'名称':<20} {'Slug':<20} {'状态':<15} {'所有者':<15} {'URL'}")
+    print("-" * 100)
+    for a in items:
+        app_url = f"{platform_url}/apps/{a['slug']}/" if a["status"] == "running" else ""
+        print(f"{a['id']:<5} {a['name']:<20} {a['slug']:<20} {fmt_status(a['status']):<15} {a['owner']['username']:<15} {app_url}")
+    print(f"\n共 {data['total']} 个应用")
+
+
+def cmd_deploy(args):
+    import argparse
+    p = argparse.ArgumentParser()
+    p.add_argument("dir", nargs="?", help="应用目录（默认当前目录）")
+    p.add_argument("--dir", dest="dir_flag", default=None, help="应用目录（--dir 方式）")
+    p.add_argument("--name", default=None, help="应用名称（跳过交互提示）")
+    p.add_argument("--slug", default=None, help="URL Slug（跳过交互提示）")
+    p.add_argument("--desc", default=None, help="应用描述（跳过交互提示）")
+    opts = p.parse_args(args)
+
+    # --dir flag takes precedence over positional arg
+    dir_arg = opts.dir_flag or opts.dir
+    src_dir = Path(dir_arg).resolve() if dir_arg else Path.cwd()
+    if not src_dir.exists():
+        print(f"❌ 目录不存在: {src_dir}")
+        sys.exit(1)
+    if not (src_dir / "app.py").exists():
+        print(f"❌ 目录中找不到 app.py: {src_dir}")
+        sys.exit(1)
+
+    meta_path = src_dir / META_FILE
+    meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}
+    app_id = meta.get("app_id")
+
+    # ── 新建应用 ──────────────────────────────────────────────────────────────
+    if not app_id:
+        default_name = src_dir.name
+        default_slug = default_name.lower().replace("_", "-").replace(" ", "-")
+
+        # Use flags if provided, otherwise fall back to interactive prompts
+        if opts.name is not None and opts.slug is not None:
+            name = opts.name
+            slug = opts.slug
+            desc = opts.desc if opts.desc is not None else ""
+        else:
+            print(f"首次部署，请填写应用信息（留空使用默认值）")
+            name = opts.name if opts.name is not None else (input(f"应用名称 [{default_name}]: ").strip() or default_name)
+            slug = opts.slug if opts.slug is not None else (input(f"URL Slug [{default_slug}]: ").strip() or default_slug)
+            desc = opts.desc if opts.desc is not None else input("应用描述: ").strip()
+
+        r = check(api("post", "/api/apps", json={"name": name, "slug": slug, "description": desc}), ok_codes=(200, 201))
+        app_id = r.json()["id"]
+        meta = {"app_id": app_id, "slug": slug, "name": name}
+        meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False))
+        print(f"✅ 应用已创建: {name} (id={app_id})")
+    else:
+        slug = meta.get("slug", "")
+        name = meta.get("name", str(app_id))
+        print(f"更新应用: {name} (id={app_id})")
+
+    # ── 打包上传 ──────────────────────────────────────────────────────────────
+    print("📦 打包中...")
+    zip_path = make_zip(src_dir)
+    try:
+        size_kb = os.path.getsize(zip_path) / 1024
+        print(f"   大小: {size_kb:.1f} KB，上传中...")
+        with open(zip_path, "rb") as f:
+            r = check(api("post", f"/api/apps/{app_id}/upload",
+                          files={"file": ("app.zip", f, "application/zip")}))
+        print("✅ 上传完成")
+    finally:
+        os.unlink(zip_path)
+
+    # ── 触发部署 ──────────────────────────────────────────────────────────────
+    check(api("post", f"/api/apps/{app_id}/deploy"), ok_codes=(200, 202))
+    print("🚀 部署任务已提交，等待构建...")
+
+    # ── 轮询状态 ──────────────────────────────────────────────────────────────
+    url = get_url()
+    dots = 0
+    for _ in range(80):
+        time.sleep(3)
+        r = api("get", f"/api/apps/{app_id}")
+        if r.status_code != 200:
+            continue
+        app = r.json()
+        status = app.get("status", "")
+        dots += 1
+        print(f"\r   构建中{'.' * (dots % 4 + 1)}   ", end="", flush=True)
+        if status == "running":
+            print(f"\n✅ 部署成功！")
+            print(f"   访问地址: {url}/apps/{slug}/")
+            return
+        if status == "failed":
+            print(f"\n❌ 部署失败，查看日志:")
+            log = app.get("build_log", "") or ""
+            lines = log.strip().splitlines()
+            for line in lines[-20:]:
+                print(f"   {line}")
+            print(f"\n更多日志: pt logs {slug}")
+            sys.exit(1)
+
+    print("\n⚠️  构建超时，可用 pt logs 查看进度")
+
+
+def cmd_info(args):
+    if not args:
+        print("用法: pt info <slug>")
+        sys.exit(1)
+    app = find_app_by_slug(args[0])
+    cfg = load_config()
+    url = cfg.get("url", "").rstrip("/")
+    print(f"名称:   {app['name']}")
+    print(f"Slug:   {app['slug']}")
+    print(f"状态:   {fmt_status(app['status'])}")
+    print(f"ID:     {app['id']}")
+    print(f"所有者: {app['owner']['username']}")
+    if app.get("description"):
+        print(f"描述:   {app['description'][:100]}")
+    if app["status"] == "running":
+        print(f"地址:   {url}/apps/{app['slug']}/")
+    print(f"创建:   {app['created_at'][:19]}")
+    print(f"更新:   {app['updated_at'][:19]}")
+
+
+def cmd_logs(args):
+    if not args:
+        print("用法: pt logs <slug>")
+        sys.exit(1)
+    app = find_app_by_slug(args[0])
+    r = check(api("get", f"/api/apps/{app['id']}/logs"))
+    data = r.json()
+    log = data.get("log", "") or ""
+    if not log:
+        print("暂无日志")
+        return
+    print(log)
+
+
+def cmd_stop(args):
+    if not args:
+        print("用法: pt stop <slug>")
+        sys.exit(1)
+    app = find_app_by_slug(args[0])
+    check(api("post", f"/api/apps/{app['id']}/stop"))
+    print(f"✅ 已停止: {app['name']}")
+
+
+def cmd_restart(args):
+    if not args:
+        print("用法: pt restart <slug>")
+        sys.exit(1)
+    app = find_app_by_slug(args[0])
+    check(api("post", f"/api/apps/{app['id']}/restart"))
+    print(f"✅ 已重启: {app['name']}")
+
+
+def cmd_delete(args):
+    if not args:
+        print("用法: pt delete <slug>")
+        sys.exit(1)
+    app = find_app_by_slug(args[0])
+    confirm = input(f"确认删除 '{app['name']}' ({app['slug']})？输入 yes 确认: ").strip()
+    if confirm.lower() != "yes":
+        print("已取消")
+        return
+    check(api("delete", f"/api/apps/{app['id']}"), ok_codes=(204, 200))
+    print(f"✅ 已删除: {app['name']}")
+
+
+def cmd_open(args):
+    if not args:
+        print("用法: pt open <slug>")
+        sys.exit(1)
+    app = find_app_by_slug(args[0])
+    if app["status"] != "running":
+        print(f"⚠️  应用当前状态: {app['status']}，可能无法访问")
+    url = get_url()
+    target = f"{url}/apps/{app['slug']}/"
+    import subprocess
+    subprocess.run(["open", target] if sys.platform == "darwin" else
+                   ["xdg-open", target] if sys.platform.startswith("linux") else
+                   ["start", target], shell=(sys.platform == "win32"))
+    print(f"打开: {target}")
+
+
+def cmd_history(args):
+    """Show run history. With a slug, shows history for that app.
+    Without a slug, shows all recent runs across all apps."""
+    if not args:
+        # Global history: all recent runs
+        r = check(api("get", "/api/apps/history/runs", params={"size": 50}))
+        records = r.json()
+        if not records:
+            print("暂无运行历史")
+            return
+        print(f"{'时间':<22} {'应用':<20} {'用户':<15} {'摘要'}")
+        print("-" * 85)
+        for rec in records[:50]:
+            ts = rec.get("timestamp", "")[:19]
+            app_name = rec.get("app_name", rec.get("app_slug", ""))
+            user = rec.get("username", "")
+            summary = rec.get("summary", "")[:40]
+            print(f"{ts:<22} {app_name:<20} {user:<15} {summary}")
+        return
+
+    # Per-app history
+    app = find_app_by_slug(args[0])
+    r = check(api("get", f"/api/apps/{app['id']}/history"))
+    records = r.json()
+    if not records:
+        print("暂无运行历史")
+        return
+    print(f"{'时间':<22} {'用户':<15} {'摘要'}")
+    print("-" * 70)
+    for rec in records[:30]:
+        ts = rec.get("timestamp", "")[:19]
+        user = rec.get("username", "")
+        summary = rec.get("summary", "")[:50]
+        print(f"{ts:<22} {user:<15} {summary}")
+
+
+def cmd_rules(args):
+    """Rules command with optional subcommand: get / update / edit."""
+    # No subcommand or subcommand is 'get' — read rules
+    if not args or args[0] == "get":
+        r = check(api("get", "/api/config/template"))
+        print(r.json().get("value", ""))
+        return
+
+    sub = args[0]
+    rest = args[1:]
+
+    if sub == "update":
+        import argparse
+        p = argparse.ArgumentParser()
+        p.add_argument("--file", default=None, help="从文件读取内容（不提供则从 stdin 读）")
+        opts = p.parse_args(rest)
+
+        if opts.file:
+            content = Path(opts.file).read_text(encoding="utf-8")
+        else:
+            if sys.stdin.isatty():
+                # No file and no piped stdin: open editor
+                _rules_edit_in_editor()
+                return
+            else:
+                content = sys.stdin.read()
+
+        check(api("put", "/api/config/template", json={"value": content}))
+        print("✅ 规范已更新")
+        return
+
+    if sub == "edit":
+        _rules_edit_in_editor()
+        return
+
+    print(f"❌ 未知子命令: {sub}")
+    print("用法: pt rules [get|update [--file FILE]|edit]")
+    sys.exit(1)
+
+
+def _rules_edit_in_editor():
+    """Fetch current rules, open in $EDITOR (or nano), then PUT on save."""
+    r = check(api("get", "/api/config/template"))
+    current = r.json().get("value", "")
+
+    with tempfile.NamedTemporaryFile(suffix=".txt", mode="w", delete=False, encoding="utf-8") as tf:
+        tf.write(current)
+        tmp_path = tf.name
+
+    editor = os.environ.get("EDITOR", "nano")
+    import subprocess
+    subprocess.call([editor, tmp_path])
+
+    new_content = Path(tmp_path).read_text(encoding="utf-8")
+    os.unlink(tmp_path)
+
+    if new_content == current:
+        print("内容未修改，跳过更新")
+        return
+
+    check(api("put", "/api/config/template", json={"value": new_content}))
+    print("✅ 规范已更新")
+
+
+def cmd_stats(_args):
+    r = check(api("get", "/api/stats"))
+    data = r.json()
+
+    print("═" * 60)
+    print("  应用统计")
+    print("═" * 60)
+    print(f"{'名称':<22} {'状态':<12} {'访问次数':<10} {'运行次数':<10} {'所有者'}")
+    print("-" * 70)
+    for a in data.get("apps", []):
+        print(f"{a['name']:<22} {fmt_status(a['status']):<12} {a['view_count']:<10} {a['run_count']:<10} {a['owner']}")
+
+    print("\n" + "═" * 60)
+    print("  用户统计")
+    print("═" * 60)
+    print(f"{'用户名':<20} {'角色':<12} {'上传':<8} {'访问':<8} {'运行'}")
+    print("-" * 60)
+    for u in data.get("users", []):
+        status_tag = "" if u["is_active"] else " [禁用]"
+        print(f"{u['username'] + status_tag:<20} {u['role']:<12} {u['upload_count']:<8} {u['view_count']:<8} {u['run_count']}")
+
+
+# ── 用户管理子命令 ─────────────────────────────────────────────────────────────
+def cmd_users(args):
+    if not args:
+        print("用法: pt users <list|create|batch|update|toggle|reset-pw|delete>")
+        sys.exit(1)
+    sub = args[0]
+    rest = args[1:]
+    {
+        "list":     _users_list,
+        "create":   _users_create,
+        "batch":    _users_batch,
+        "update":   _users_update,
+        "toggle":   _users_toggle,
+        "reset-pw": _users_reset_pw,
+        "delete":   _users_delete,
+    }.get(sub, lambda _: print(f"❌ 未知子命令: {sub}"))(rest)
+
+
+def _users_list(_args):
+    r = check(api("get", "/api/admin/users"))
+    users = r.json()
+    print(f"{'ID':<5} {'用户名':<20} {'角色':<12} {'状态':<8} {'邮箱'}")
+    print("-" * 65)
+    for u in users:
+        status = "正常" if u["is_active"] else "禁用"
+        print(f"{u['id']:<5} {u['username']:<20} {u['role']:<12} {status:<8} {u.get('email') or ''}")
+    print(f"\n共 {len(users)} 位用户")
+
+
+def _users_create(args):
+    import argparse
+    p = argparse.ArgumentParser()
+    p.add_argument("--username", required=True)
+    p.add_argument("--password", required=True)
+    p.add_argument("--role", default="user", choices=["admin", "user", "annotator"])
+    p.add_argument("--email", default=None)
+    p.add_argument("--expires-at", default=None)
+    opts = p.parse_args(args)
+    body = {"username": opts.username, "password": opts.password, "role": opts.role}
+    if opts.email:
+        body["email"] = opts.email
+    if opts.expires_at:
+        body["expires_at"] = opts.expires_at
+    r = check(api("post", "/api/admin/users", json=body), ok_codes=(200, 201))
+    u = r.json()
+    print(f"✅ 已创建用户: {u['username']} ({u['role']})")
+
+
+def _users_batch(args):
+    import argparse
+    p = argparse.ArgumentParser()
+    p.add_argument("--project", required=True, help="项目前缀，用户名格式: {project}_{index:03d}")
+    p.add_argument("--count",   required=True, type=int, help="创建数量")
+    p.add_argument("--start",   default=1,     type=int, help="起始序号（默认1）")
+    p.add_argument("--password", required=True, help="统一密码")
+    p.add_argument("--expires-at", default=None)
+    opts = p.parse_args(args)
+    body = {"project_name": opts.project, "count": opts.count,
+            "start_index": opts.start, "password": opts.password}
+    if opts.expires_at:
+        body["expires_at"] = opts.expires_at
+    r = check(api("post", "/api/admin/users/batch", json=body), ok_codes=(200, 201))
+    users = r.json()
+    print(f"✅ 批量创建完成，共 {len(users)} 位用户:")
+    for u in users:
+        print(f"   {u['username']}")
+
+
+def _users_update(args):
+    import argparse
+    p = argparse.ArgumentParser()
+    p.add_argument("user_id", type=int)
+    p.add_argument("--role",       default=None, choices=["admin", "user", "annotator"])
+    p.add_argument("--password",   default=None)
+    p.add_argument("--email",      default=None)
+    p.add_argument("--expires-at", default=None)
+    opts = p.parse_args(args)
+    body = {}
+    if opts.role:       body["role"] = opts.role
+    if opts.password:   body["password"] = opts.password
+    if opts.email:      body["email"] = opts.email
+    if opts.expires_at: body["expires_at"] = opts.expires_at
+    if not body:
+        print("❌ 请提供至少一个要更新的字段")
+        sys.exit(1)
+    r = check(api("put", f"/api/admin/users/{opts.user_id}", json=body))
+    u = r.json()
+    print(f"✅ 已更新用户: {u['username']}")
+
+
+def _users_toggle(args):
+    if not args:
+        print("用法: pt users toggle <user_id|username>")
+        sys.exit(1)
+    uid = lookup_user_id(args[0])
+    # 先获取当前状态
+    r = check(api("get", "/api/admin/users"))
+    user = next((u for u in r.json() if u["id"] == uid), None)
+    if not user:
+        print(f"❌ 用户不存在: {args[0]}")
+        sys.exit(1)
+    new_active = not user["is_active"]
+    check(api("put", f"/api/admin/users/{uid}", json={"is_active": new_active}))
+    state = "启用" if new_active else "禁用"
+    print(f"✅ 已{state}用户: {user['username']}")
+
+
+def _users_reset_pw(args):
+    import argparse
+    p = argparse.ArgumentParser()
+    p.add_argument("user_id", help="用户 ID 或用户名")
+    p.add_argument("password")
+    opts = p.parse_args(args)
+    uid = lookup_user_id(opts.user_id)
+    check(api("put", f"/api/admin/users/{uid}", json={"password": opts.password}))
+    print(f"✅ 已重置用户 (ID={uid}) 的密码")
+
+
+def _users_delete(args):
+    if not args:
+        print("用法: pt users delete <user_id|username>")
+        sys.exit(1)
+    uid = lookup_user_id(args[0])
+    # 获取用户信息以便确认
+    r = check(api("get", "/api/admin/users"))
+    user = next((u for u in r.json() if u["id"] == uid), None)
+    if not user:
+        print(f"❌ 用户不存在: {args[0]}")
+        sys.exit(1)
+    confirm = input(f"确认删除用户 '{user['username']}' (ID={uid})？输入 yes 确认: ").strip()
+    if confirm.lower() != "yes":
+        print("已取消")
+        return
+    check(api("delete", f"/api/admin/users/{uid}"), ok_codes=(204, 200))
+    print(f"✅ 已删除用户: {user['username']}")
+
+
+# ── Prompts 子命令 ────────────────────────────────────────────────────────────
+def cmd_prompts(args):
+    if not args:
+        print("用法: pt prompts <list|get|create|update|delete>")
+        sys.exit(1)
+    sub = args[0]
+    rest = args[1:]
+    {
+        "list":   _prompts_list,
+        "get":    _prompts_get,
+        "create": _prompts_create,
+        "update": _prompts_update,
+        "delete": _prompts_delete,
+    }.get(sub, lambda _: print(f"❌ 未知子命令: {sub}"))(rest)
+
+
+def _prompts_list(_args):
+    r = check(api("get", "/api/prompts"))
+    prompts = r.json()
+    if not prompts:
+        print("暂无 Prompt 模板")
+        return
+    for p in prompts:
+        cat = f"[{p['category']}]" if p.get("category") else ""
+        print(f"  {p['id']:>3}. {cat} {p['title']}")
+        if p.get("content"):
+            preview = p["content"][:80].replace("\n", " ")
+            print(f"       {preview}...")
+
+
+def _prompts_get(args):
+    if not args:
+        print("用法: pt prompts get <id>")
+        sys.exit(1)
+    pid = int(args[0])
+    r = check(api("get", f"/api/prompts/{pid}"))
+    prompt = r.json()
+    print(f"ID:       {prompt['id']}")
+    print(f"标题:     {prompt['title']}")
+    if prompt.get("category"):
+        print(f"分类:     {prompt['category']}")
+    print(f"内容:")
+    print("-" * 60)
+    print(prompt.get("content", ""))
+
+
+def _prompts_create(args):
+    import argparse
+    p = argparse.ArgumentParser()
+    p.add_argument("--title",    required=True)
+    p.add_argument("--content",  required=True)
+    p.add_argument("--category", default=None)
+    opts = p.parse_args(args)
+    body = {"title": opts.title, "content": opts.content}
+    if opts.category:
+        body["category"] = opts.category
+    r = check(api("post", "/api/prompts", json=body), ok_codes=(200, 201))
+    print(f"✅ 已创建 Prompt: {r.json()['title']}")
+
+
+def _prompts_update(args):
+    import argparse
+    p = argparse.ArgumentParser()
+    p.add_argument("id", type=int)
+    p.add_argument("--title",    default=None)
+    p.add_argument("--content",  default=None)
+    p.add_argument("--category", default=None)
+    opts = p.parse_args(args)
+    body = {}
+    if opts.title:    body["title"] = opts.title
+    if opts.content:  body["content"] = opts.content
+    if opts.category: body["category"] = opts.category
+    if not body:
+        print("❌ 请提供至少一个要更新的字段 (--title / --content / --category)")
+        sys.exit(1)
+    r = check(api("put", f"/api/prompts/{opts.id}", json=body))
+    print(f"✅ 已更新 Prompt ID={opts.id}")
+
+
+def _prompts_delete(args):
+    if not args:
+        print("用法: pt prompts delete <id>")
+        sys.exit(1)
+    pid = int(args[0])
+    check(api("delete", f"/api/prompts/{pid}"), ok_codes=(204, 200))
+    print(f"✅ 已删除 Prompt ID={pid}")
+
+
+# ── Files 子命令 ───────────────────────────────────────────────────────────────
+def cmd_files(args):
+    if not args:
+        print("用法: pt files <list|download>")
+        sys.exit(1)
+    sub = args[0]
+    rest = args[1:]
+    {
+        "list":     _files_list,
+        "download": _files_download,
+    }.get(sub, lambda _: print(f"❌ 未知子命令: {sub}"))(rest)
+
+
+def _files_list(args):
+    params = {}
+    if args:
+        params["slug"] = args[0]
+    r = check(api("get", "/api/apps/history/files", params=params))
+    files = r.json()
+    if not files:
+        print("暂无文件")
+        return
+    print(f"{'应用':<20} {'文件':<35} {'大小':<10} {'修改时间'}")
+    print("-" * 85)
+    for f in files:
+        app_name = f.get("app_name", f.get("app_slug", ""))
+        filepath = f.get("filepath", f.get("filename", ""))
+        size = fmt_size(f.get("size", 0))
+        modified = f.get("modified_at", f.get("updated_at", ""))[:19] if f.get("modified_at") or f.get("updated_at") else ""
+        print(f"{app_name:<20} {filepath:<35} {size:<10} {modified}")
+
+
+def _files_download(args):
+    if len(args) < 2:
+        print("用法: pt files download <slug> <filepath>")
+        sys.exit(1)
+    slug = args[0]
+    filepath = args[1]
+    app = find_app_by_slug(slug)
+    r = check(api("get", f"/api/apps/{app['id']}/files/{filepath}"))
+    # Save to current directory using the filename from the path
+    filename = Path(filepath).name
+    dest = Path.cwd() / filename
+    dest.write_bytes(r.content)
+    print(f"✅ 已下载: {filename} ({fmt_size(len(r.content))})")
+    print(f"   保存位置: {dest}")
+
+
+# ── 帮助 ──────────────────────────────────────────────────────────────────────
+HELP = """PulseTeach AI CLI — AI 教学工具平台
+
+账号:
+  pt login [--url URL]           登录平台
+  pt logout                      退出登录
+  pt whoami                      查看当前账号
+  pt status                      检查平台连通性和登录状态
+
+配置:
+  pt config                      查看当前团队 AI 配置
+  pt config get                  同上
+  pt config set --api-key K --base-url U --codex-model M --openclaw-model M
+                                 更新团队 AI 配置（管理员）
+  pt sync-config                 同步团队 AI 配置到本地 Codex / OpenClaw
+
+应用:
+  pt list [--status STATUS]      列出所有应用（含 URL）
+  pt deploy [DIR] [--dir DIR] [--name N] [--slug S] [--desc D]
+                                 部署应用（默认当前目录）
+  pt info <slug>                 查看应用详情
+  pt logs <slug>                 查看构建/运行日志
+  pt stop <slug>                 停止应用
+  pt restart <slug>              重启应用
+  pt delete <slug>               删除应用
+  pt open <slug>                 在浏览器打开应用
+
+历史:
+  pt history [slug]              查看运行历史（无 slug 则显示全部应用）
+
+规范 (管理员):
+  pt rules                       查看代码规范 Prompt
+  pt rules get                   同上
+  pt rules update [--file FILE]  更新规范（无 --file 则从 stdin 或编辑器）
+  pt rules edit                  在 $EDITOR 中编辑规范
+
+文件:
+  pt files list [slug]           列出历史输出文件（可按应用过滤）
+  pt files download <slug> <filepath>  下载文件到当前目录
+
+统计 (管理员):
+  pt stats                       查看使用统计
+
+用户管理 (管理员):
+  pt users list                  查看用户列表
+  pt users create --username U --password P [--role R]
+  pt users batch --project P --count N --password PW [--start N]
+  pt users update <id> [--role R] [--password P] [--email E]
+  pt users toggle <id|username>  启用/禁用用户
+  pt users reset-pw <id|username> <新密码>
+  pt users delete <id|username>  删除用户（需确认）
+
+Prompt 模板:
+  pt prompts list                查看 Prompt 列表
+  pt prompts get <id>            查看 Prompt 完整内容
+  pt prompts create --title T --content C [--category C]
+  pt prompts update <id> [--title T] [--content C] [--category C]
+  pt prompts delete <id>
+"""
+
+# ── 入口 ──────────────────────────────────────────────────────────────────────
+def main():
+    if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help", "help"):
+        print(HELP)
+        return
+
+    cmd = sys.argv[1]
+    args = sys.argv[2:]
+
+    commands = {
+        "login":       cmd_login,
+        "logout":      cmd_logout,
+        "whoami":      cmd_whoami,
+        "sync-config": cmd_sync_config,
+        "config":      cmd_config,
+        "status":      cmd_status,
+        "list":        cmd_list,
+        "deploy":      cmd_deploy,
+        "info":        cmd_info,
+        "logs":        cmd_logs,
+        "stop":        cmd_stop,
+        "restart":     cmd_restart,
+        "delete":      cmd_delete,
+        "open":        cmd_open,
+        "history":     cmd_history,
+        "rules":       cmd_rules,
+        "stats":       cmd_stats,
+        "users":       cmd_users,
+        "prompts":     cmd_prompts,
+        "files":       cmd_files,
+    }
+
+    fn = commands.get(cmd)
+    if not fn:
+        print(f"❌ 未知命令: {cmd}")
+        print("运行 pt --help 查看帮助")
+        sys.exit(1)
+
+    fn(args)
+
+
+if __name__ == "__main__":
+    main()

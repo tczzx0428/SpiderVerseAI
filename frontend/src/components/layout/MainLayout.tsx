@@ -92,10 +92,10 @@ export default function MainLayout() {
               background: "#2c2c2c", borderRadius: 8,
               display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: 14, fontWeight: 700, color: "#fff", letterSpacing: "-0.5px",
-            }}>SV</div>
+            }}>PT</div>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 600, color: "#1a1a1a" }}>SpiderVerseAI</div>
-              <div style={{ fontSize: 11, color: "#999", letterSpacing: "0.3px" }}>灵感宇宙</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: "#1a1a1a" }}>PulseTeach AI</div>
+              <div style={{ fontSize: 11, color: "#999", letterSpacing: "0.3px" }}>律动课堂</div>
             </div>
           </div>
         </div>

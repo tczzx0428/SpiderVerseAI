@@ -13,13 +13,13 @@ http:
       priority: 1
 
   middlewares:
-    sv-auth:
+    pt-auth:
       forwardAuth:
         address: "http://backend:8000/api/auth/verify-app"
         authResponseHeaders:
-          - "X-SV-User"
-          - "X-SV-Role"
-          - "X-SV-User-Id"
+          - "X-PT-User"
+          - "X-PT-Role"
+          - "X-PT-User-Id"
 
   services:
     backend-svc:

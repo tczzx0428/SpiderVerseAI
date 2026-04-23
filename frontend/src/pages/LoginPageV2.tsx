@@ -155,20 +155,22 @@ export default function LoginPageV2() {
             borderRadius: 11, display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 16, fontWeight: 800, color: "#fff", letterSpacing: "-0.5px",
             boxShadow: "0 8px 24px rgba(139,92,246,0.35)",
-          }}>SV</div>
+          }}>PT</div>
           <div>
-            <div style={{ fontSize: 19, fontWeight: 700, color: "#fff", letterSpacing: "-0.3px" }}>SpiderVerseAI</div>
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 1 }}>灵感宇宙</div>
+            <div style={{ fontSize: 19, fontWeight: 700, color: "#fff", letterSpacing: "-0.3px" }}>PulseTeach AI</div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 1 }}>律动课堂</div>
           </div>
         </div>
 
         {/* 标题 */}
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <h1 style={{ fontSize: 26, fontWeight: 700, color: "#fff", margin: "0 0 8px", letterSpacing: "-0.5px" }}>
-            AI 一键生成产品
+            律动课堂，让教学灵感不打烊。
           </h1>
           <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", margin: 0, lineHeight: 1.7 }}>
-            描述你的想法，让 AI 自动完成从构建到部署的全流程
+            在这里，AI 守护你的教育初心，让创意不再被繁琐的流程困住。<br />
+            一句自然语言，AI 帮你完成「构建 → 部署 → 上线」全流程。<br />
+            零代码，也能打造惊艳的互动教学工具，让课堂节奏随心掌控。
           </p>
         </div>
 

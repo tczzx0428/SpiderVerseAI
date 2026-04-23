@@ -1,6 +1,6 @@
-# SpiderVerseAI Skill — 需求到上线全流程
+# PulseTeach AI Skill — 需求到上线全流程
 
-你是一个 AI 工程助手，能够帮助用户将需求转化为可运行的 Streamlit 应用并部署到 SpiderVerseAI 平台。
+你是一个 AI 工程助手，能够帮助用户将需求转化为可运行的 Streamlit 应用并部署到 PulseTeach AI 平台。
 
 ---
 
@@ -11,7 +11,7 @@
 - "部署 xxx 应用"
 - "我需要一个 xxx 功能"
 - "上线一个 xxx"
-- "sv deploy" / "发布应用"
+- "pt deploy" / "发布应用"
 
 ---
 
@@ -29,7 +29,7 @@
 在生成代码前，先获取平台的代码规范 Prompt：
 
 ```bash
-sv rules
+pt rules
 ```
 
 这会输出平台管理员设定的代码规范，**必须严格遵守**，包括：
@@ -43,11 +43,11 @@ sv rules
 
 在以下目录创建项目（如果不存在则新建）：
 ```
-~/Desktop/pe-apps/{应用名}/
+~/Desktop/pt-apps/{应用名}/
 ```
 
 在该目录启动 Codex，告知：
-1. 代码规范（来自 sv rules 的输出）
+1. 代码规范（来自 pt rules 的输出）
 2. 用户需求
 3. 需要生成：`app.py` + `requirements.txt`（复杂工具还需 `config.py` + `src/`）
 
@@ -62,18 +62,18 @@ sv rules
 - 不包含标准库
 - 禁止使用 calamine（Excel 用 openpyxl）
 
-### 第四步：部署到 SpiderVerseAI
+### 第四步：部署到 PulseTeach AI
 
 代码写好后，在项目目录执行：
 
 ```bash
 cd ~/Desktop/pe-apps/{应用名}
-sv deploy --name "{应用名称}" --slug {slug} --desc "{一句话描述}"
+pt deploy --name "{应用名称}" --slug {slug} --desc "{一句话描述}"
 ```
 
 > **注意**：小龙虾已知应用名称和 slug（在第一步和用户确认过），直接传入参数，无需交互输入。
 
-`sv deploy` 会自动：
+`pt deploy` 会自动：
 1. 将目录打包为 zip（忽略 .git、__pycache__ 等）
 2. 上传到平台
 3. 构建 Docker 镜像
@@ -81,64 +81,64 @@ sv deploy --name "{应用名称}" --slug {slug} --desc "{一句话描述}"
 5. 返回访问链接
 
 **首次部署**：通过 `--name`、`--slug`、`--desc` 直接传入参数，跳过交互提示。
-**后续更新**：再次运行 `sv deploy` 即可，会自动识别已有应用（无需重复传参）。
+**后续更新**：再次运行 `pt deploy` 即可，会自动识别已有应用（无需重复传参）。
 
 ### 第五步：告知用户结果
 
 部署成功后，告知用户：
 - 应用访问链接（如 `http://YOUR_PLATFORM_HOST/apps/text-cleaner/`）
-- 需要登录 SpiderVerseAI 账号才能访问
+- 需要登录 PulseTeach AI 账号才能访问
 
 ---
 
-## 常用 sv 命令速查
+## 常用 pt 命令速查
 
 ```bash
 # 账号
-sv login              # 登录平台
-sv whoami             # 查看当前登录状态
-sv status             # 快速检查平台连通性和 token 有效性
+pt login              # 登录平台
+pt whoami             # 查看当前登录状态
+pt status             # 快速检查平台连通性和 token 有效性
 
 # 应用管理
-sv list               # 查看所有应用（running 状态显示 URL）
-sv deploy --name "{名称}" --slug {slug} --desc "{描述}"  # 首次部署（带参数，无需交互）
-sv deploy             # 更新已有应用（再次部署）
-sv info {slug}        # 查看应用详情
-sv logs {slug}        # 查看构建/运行日志
-sv stop {slug}        # 停止应用
-sv restart {slug}     # 重启应用
-sv delete {slug}      # 删除应用（需确认）
+pt list               # 查看所有应用（running 状态显示 URL）
+pt deploy --name "{名称}" --slug {slug} --desc "{描述}"  # 首次部署（带参数，无需交互）
+pt deploy             # 更新已有应用（再次部署）
+pt info {slug}        # 查看应用详情
+pt logs {slug}        # 查看构建/运行日志
+pt stop {slug}        # 停止应用
+pt restart {slug}     # 重启应用
+pt delete {slug}      # 删除应用（需确认）
 pe open {slug}        # 在浏览器打开应用
 
 # 应用历史
-sv history            # 查看所有应用的最近运行记录（全局）
-sv history {slug}     # 查看指定应用的运行历史
+pt history            # 查看所有应用的最近运行记录（全局）
+pt history {slug}     # 查看指定应用的运行历史
 
 # 文件
-sv files list         # 列出所有应用的历史输出文件
-sv files list {slug}  # 列出指定应用的历史输出文件
-sv files download {slug} {filepath}  # 下载文件到当前目录
+pt files list         # 列出所有应用的历史输出文件
+pt files list {slug}  # 列出指定应用的历史输出文件
+pt files download {slug} {filepath}  # 下载文件到当前目录
 
 # 规范
-sv rules              # 查看代码规范 Prompt（生成代码前必须先看）
-sv rules edit         # 在编辑器中修改规范（管理员）
-sv rules update --file {file}  # 从文件更新规范（管理员）
+pt rules              # 查看代码规范 Prompt（生成代码前必须先看）
+pt rules edit         # 在编辑器中修改规范（管理员）
+pt rules update --file {file}  # 从文件更新规范（管理员）
 
 # 统计（管理员）
-sv stats              # 查看使用统计
+pt stats              # 查看使用统计
 
 # 用户管理（管理员）
-sv users list
-sv users create --username {u} --password {p} --role user
-sv users batch --project {name} --count {n} --password {pw}
-sv users reset-pw {id|username} {新密码}
-sv users toggle {id|username}   # 启用/禁用
-sv users delete {id|username}   # 删除用户（需确认）
+pt users list
+pt users create --username {u} --password {p} --role user
+pt users batch --project {name} --count {n} --password {pw}
+pt users reset-pw {id|username} {新密码}
+pt users toggle {id|username}   # 启用/禁用
+pt users delete {id|username}   # 删除用户（需确认）
 
 # Prompt 模板
-sv prompts list
-sv prompts get {id}   # 查看完整内容
-sv prompts update {id} --title {t} --content {c}
+pt prompts list
+pt prompts get {id}   # 查看完整内容
+pt prompts update {id} --title {t} --content {c}
 ```
 
 ---
@@ -147,16 +147,16 @@ sv prompts update {id} --title {t} --content {c}
 
 **部署失败 / 构建错误：**
 ```bash
-sv logs {slug}
+pt logs {slug}
 ```
 常见原因：requirements.txt 包名不存在、app.py 语法错误、依赖冲突
 
 **应用无法访问（401）：**
-- `sv whoami` 检查登录状态
-- `sv info {slug}` 查看应用状态
-- `sv restart {slug}` 重启应用
+- `pt whoami` 检查登录状态
+- `pt info {slug}` 查看应用状态
+- `pt restart {slug}` 重启应用
 
-**sv 命令找不到：**
+**pt 命令找不到：**
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
 ```
@@ -168,4 +168,4 @@ export PATH="$HOME/.local/bin:$PATH"
 1. 代码中**不要**硬编码敏感信息（API key 放 config.py，config.py 不提交 git）
 2. 应用目录放在 `~/Desktop/pe-apps/` 下
 3. Slug 一旦设定不可更改（需删除重建）
-4. 生成代码前**必须**先运行 `sv rules` 获取最新规范
+4. 生成代码前**必须**先运行 `pt rules` 获取最新规范

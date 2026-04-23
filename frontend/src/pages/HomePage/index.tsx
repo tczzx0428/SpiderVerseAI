@@ -110,9 +110,9 @@ export default function HomePage() {
       <section className="hp-hero">
         <div className="hp-hero-glow"><div className="hp-hero-glow-1" /><div className="hp-hero-glow-2" /></div>
         <div style={{ position: "relative", zIndex: 1 }}>
-          <div className="hp-badge"><span style={{ fontSize: 16 }}>\u{1F468}\u200D\u{1F3EB}</span> 专为中小学教师打造的 AI 创课平台</div>
-          <h1 className="hp-title">把时间还给课堂<br />把灵感还给<span>教育</span></h1>
-          <p className="hp-desc">在这里，每一份教育初心都能被 AI 守护。<br />用自然语言描述你的创意，AI 帮你完成。</p>
+          <div className="hp-badge"><span style={{ fontSize: 16 }}>👨‍🏫</span> PulseTeach AI · 律动课堂</div>
+          <h1 className="hp-title">律动课堂，让教学灵感不打烊。</h1>
+          <p className="hp-desc">在这里，AI 守护你的教育初心，让创意不再被繁琐的流程困住。<br />一句自然语言，AI 帮你完成「构建 → 部署 → 上线」全流程。零代码，也能打造惊艳的互动教学工具，让课堂节奏随心掌控。</p>
           <div className="hp-btns">
             <button className="hp-btn-primary" onClick={() => navigate("/apps")}>✨ 开始创作</button>
             <button className="hp-btn-ghost" onClick={() => document.getElementById("templates")?.scrollIntoView({ behavior: "smooth" })}>看看模板 →</button>

@@ -1,11 +1,11 @@
 ---
 name: openclaw-skills-guide
-description: 教 openclaw 如何操作 SpiderVerseAI Skills 市场，搜索、查看和安装 Skills
+description: 教 openclaw 如何操作 PulseTeach AI Skills 市场，搜索、查看和安装 Skills
 ---
 
 # openclaw Skills 市场操作指南
 
-你可以通过 SpiderVerseAI 的 CLI API 帮助用户管理 Skills。
+你可以通过 PulseTeach AI 的 CLI API 帮助用户管理 Skills。
 
 ## API 信息
 

@@ -99,7 +99,7 @@ export default function AppDetailPage() {
   const s = STATUS_MAP[app.status] || { status: "default", text: app.status };
   const isAdmin = user?.role === "admin";
   const accessUrl = app.access_url
-    ? `${app.access_url}?sv_user=${encodeURIComponent(user?.username || "")}`
+    ? `${app.access_url}?pt_user=${encodeURIComponent(user?.username || "")}`
     : undefined;
 
   const tabItems = [

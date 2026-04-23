@@ -3,7 +3,7 @@ version: "3.9"
 networks:
   tool-platform-network:
     external: true
-    name: sv_space_tool-platform-network
+    name: pt_space_tool-platform-network
 
 volumes:
   postgres-data:

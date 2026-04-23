@@ -226,7 +226,7 @@ st.download_button(
 **获取当前用户名（平台通过 URL 参数传入，必须读取）：**
 ```python
 # 在需要用到用户名的地方调用
-username = st.query_params.get("sv_user", "anonymous")
+username = st.query_params.get("pt_user", "anonymous")
 ```
 
 **标准 save_run_record 函数（必须原样复制到 app.py）：**
@@ -245,7 +245,7 @@ def save_run_record(
     平台"历史记录"页面依赖此函数，必须在每次成功产出结果后调用。
 
     Args:
-        username: 当前用户名，从 st.query_params.get("sv_user", "anonymous") 获取
+        username: 当前用户名，从 st.query_params.get("pt_user", "anonymous") 获取
         inputs: 本次运行的输入参数，dict 格式，例如 {"关键词": "AI", "页数": 3}
         output_bytes: 结果文件的二进制内容（bytes）
         output_filename: 结果文件名，例如 "result.xlsx"
@@ -279,7 +279,7 @@ def save_run_record(
 **调用示例（在点击"运行"按钮、结果生成后调用）：**
 ```python
 if st.button("▶️ 开始处理", type="primary"):
-    username = st.query_params.get("sv_user", "anonymous")
+    username = st.query_params.get("pt_user", "anonymous")
 
     with st.spinner("处理中..."):
         # ... 你的处理逻辑 ...

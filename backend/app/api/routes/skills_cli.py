@@ -26,7 +26,7 @@ from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/cli/skills", tags=["skills-cli"])
 
-SKILLS_STORAGE_DIR = __import__("pathlib").Path("/tmp/sv_skills")
+SKILLS_STORAGE_DIR = __import__("pathlib").Path("/tmp/pt_skills")
 
 CLI_TOKEN_KEY = "cli_token"
 

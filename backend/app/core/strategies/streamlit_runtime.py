@@ -18,14 +18,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # 注入平台文件（放在 COPY . . 之后，确保不被用户文件覆盖）
-COPY sv_entry.py /app/sv_entry.py
-COPY sv_utils.py /app/sv_utils.py
+COPY pt_entry.py /app/pt_entry.py
+COPY pt_utils.py /app/pt_utils.py
 
 # 将用户的 app.py 重命名，由追踪入口代理执行
 RUN mv /app/app.py /app/app_original.py
 
 EXPOSE 8501
-CMD ["streamlit", "run", "sv_entry.py", \
+CMD ["streamlit", "run", "pt_entry.py", \
      "--server.port=8501", \
      "--server.address=0.0.0.0", \
      "--server.headless=true", \
@@ -43,7 +43,7 @@ class StreamlitRuntime:
     def get_entrypoint_files(self) -> list[tuple[str, str]]:
         src_dir = Path(__file__).parent.parent.parent / "infra" / "services"
         files = []
-        for fname in ("sv_entry.py", "sv_utils.py"):
+        for fname in ("pt_entry.py", "pt_utils.py"):
             src = src_dir / fname
             if src.exists():
                 files.append((fname, src.read_text(encoding="utf-8")))
