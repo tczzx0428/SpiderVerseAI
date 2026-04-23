@@ -61,7 +61,7 @@ container.py — 依赖注入，组装所有依赖
 
 ```bash
 # 1. 克隆代码
-git clone https://github.com/tczzx0428/SpiderVerseAI.git "PulseTeach AI" && cd "PulseTeach AI"
+git clone https://github.com/tczzx0428/PulseTeach-AI.git "PulseTeach AI" && cd "PulseTeach AI"
 
 # 2. 配置环境变量
 cp .env.example .env
