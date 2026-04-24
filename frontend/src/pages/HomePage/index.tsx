@@ -3,12 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { listApps, type AppItem } from "@/api/apps";
 
 const TEMPLATES = [
-  { icon: "\u{1F52C}", title: "物理原理演示", desc: "光的折射、自由落体、电路模拟、波动干涉等互动实验", prompt: "帮我做一个物理演示网页，展示[具体知识点]，学生可以通过拖拽/点击来观察现象变化，界面简洁适合课堂投影", color: "#3b82f6", bg: "rgba(59,130,246,0.06)" },
-  { icon: "\u{1F30D}", title: "地理规律可视化", desc: "气候分布、地形剖面、洋流方向、板块运动等动态地图", prompt: "帮我做一个地理教学网页，用交互式地图展示[具体地理知识]，学生可以点击不同区域查看详情，配色清晰易读", color: "#10b981", bg: "rgba(16,185,129,0.06)" },
-  { icon: "\u{1F9EE}", title: "趣味数学工具", desc: "函数图像绘制器、概率模拟、几何作图、统计图表生成器", prompt: "帮我做一个数学教学工具，可以[具体功能]，界面友好，适合中小学生操作，支持输入参数实时看到结果变化", color: "#f59e0b", bg: "rgba(245,158,11,0.06)" },
-  { icon: "\u{1F3AF}", title: "课堂互动游戏", desc: "知识竞答、分组PK、随机点名、计时器、投票器等小工具", prompt: "帮我做一个课堂互动工具，用于[具体场景]，操作简单，一键开始，界面活泼有趣能吸引学生注意力", color: "#ef4444", bg: "rgba(239,68,68,0.06)" },
-  { icon: "\u{1F4D6}", title: "语文/英语辅助", desc: "古诗词动画、语法树分析、单词记忆卡片、阅读理解助手", prompt: "帮我做一个[学科]教学辅助网页，主题是[具体内容]，图文并茂，有互动元素帮助学生理解", color: "#8b5cf6", bg: "rgba(139,92,246,0.06)" },
-  { icon: "\u2697\uFE0F", title: "化学实验模拟", desc: "分子结构3D展示、化学反应动画、周期表互动查询", prompt: "帮我做一个化学教学网页，模拟[具体实验或概念]，安全直观，学生可以看到反应过程的每一步", color: "#06b6d4", bg: "rgba(6,182,212,0.06)" },
+  { id: "science", icon: "🔬", title: "理科原理可视化", desc: "物理、化学、生物等理科知识的交互式演示网页，支持动画模拟", prompt: "我想创建一个理科原理可视化应用，用于展示物理/化学/生物知识，需要交互式动画演示", color: "#722ed1", bg: "rgba(114,46,209,0.06)", borderColor: "#d3adf7" },
+  { id: "utility", icon: "🎁", title: "抽奖排课工具", desc: "随机抽奖、自动排课、座位分配、计时器投票器等实用小工具", prompt: "我想创建一个实用工具类应用，比如抽奖、排课、随机分配等功能", color: "#eb2f96", bg: "rgba(235,47,150,0.06)", borderColor: "#ffadd2" },
+  { id: "data", icon: "📊", title: "AI数据分析", desc: "数据上传清洗、AI智能分析、图表可视化报告生成", prompt: "我想创建一个AI数据分析应用，可以上传数据文件，用AI进行分析并生成可视化报告", color: "#13c2c2", bg: "rgba(19,194,194,0.06)", borderColor: "#87e8de" },
+  { id: "education", icon: "📚", title: "教育辅助工具", desc: "古诗词动画、语法分析、单词记忆卡片、阅读理解助手", prompt: "我想创建一个教育教学辅助应用，主题是学科知识学习，图文并茂有互动元素帮助学生理解", color: "#1677ff", bg: "rgba(22,119,255,0.06)", borderColor: "#69b1ff" },
+  { id: "math", icon: "🧮", title: "趣味数学工具", desc: "函数图像绘制、概率模拟、几何作图、统计图表生成器", prompt: "我想创建一个数学教学工具，可以绘制函数图像或进行概率模拟，界面友好适合中小学生操作", color: "#fa8c16", bg: "rgba(250,140,22,0.06)", borderColor: "#ffc53d" },
+  { id: "custom", icon: "💡", title: "自由创作", desc: "描述你的想法，AI帮你实现任何符合规范的Streamlit应用", prompt: "", color: "#52c41a", bg: "rgba(82,196,26,0.06)", borderColor: "#95de64" },
 ];
 
 const STEPS = [
@@ -114,7 +114,7 @@ export default function HomePage() {
           <h1 className="hp-title">律动课堂，让教学灵感不打烊。</h1>
           <p className="hp-desc">在这里，AI 守护你的教育初心，让创意不再被繁琐的流程困住。<br />一句自然语言，AI 帮你完成「构建 → 部署 → 上线」全流程。零代码，也能打造惊艳的互动教学工具，让课堂节奏随心掌控。</p>
           <div className="hp-btns">
-            <button className="hp-btn-primary" onClick={() => navigate("/apps")}>✨ 开始创作</button>
+            <button className="hp-btn-primary" onClick={() => navigate("/create")}>✨ 开始创作</button>
             <button className="hp-btn-ghost" onClick={() => document.getElementById("templates")?.scrollIntoView({ behavior: "smooth" })}>看看模板 →</button>
           </div>
         </div>
@@ -152,8 +152,14 @@ export default function HomePage() {
               {selectedTemplate === idx && (
                 <div className="hp-tpl-detail">
                   <div className="hp-tpl-prompt-label">💡 示例提示词：</div>
-                  <div className="hp-tpl-prompt">{t.prompt}</div>
-                  <button className="hp-tpl-go" onClick={(e) => { e.stopPropagation(); navigate("/apps"); }}>去创作 →</button>
+                  <div className="hp-tpl-prompt">{t.prompt || "自由描述你的想法，AI帮你实现"}</div>
+                  <button className="hp-tpl-go" onClick={(e) => {
+                    e.stopPropagation();
+                    const params = new URLSearchParams();
+                    params.set("template", t.id);
+                    if (t.prompt) params.set("prompt", t.prompt);
+                    navigate(`/create?${params.toString()}`);
+                  }}>去创作 →</button>
                 </div>
               )}
             </div>
@@ -187,7 +193,7 @@ export default function HomePage() {
             <div style={{ fontSize: 48, marginBottom: 16 }}>🎒</div>
             <h3 style={{ fontSize: 18, fontWeight: 700, color: "#1a1a1a", margin: "0 0 8px" }}>还没有作品</h3>
             <p style={{ fontSize: 14, color: "#999", margin: "0 0 24px", maxWidth: 360, marginLeft: "auto", marginRight: "auto", lineHeight: 1.7 }}>选择上方的模板开始你的第一个互动教学工具吧！<br />不需要任何编程基础，用说话的方式告诉 AI 就行。</p>
-            <button style={{ padding: "12px 28px", background: "#0a0a0a", color: "#fff", border: "none", borderRadius: 11, fontSize: 14, fontWeight: 600, cursor: "pointer" }} onClick={() => navigate("/apps")}>+ 创建第一个应用</button>
+            <button style={{ padding: "12px 28px", background: "#0a0a0a", color: "#fff", border: "none", borderRadius: 11, fontSize: 14, fontWeight: 600, cursor: "pointer" }} onClick={() => navigate("/create")}>+ 创建第一个应用</button>
           </div>
         )}
       </section>

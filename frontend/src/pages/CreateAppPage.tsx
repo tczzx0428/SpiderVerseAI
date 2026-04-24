@@ -26,8 +26,13 @@ import {
   DeleteOutlined,
   UserOutlined,
   ClockCircleOutlined,
+  ExperimentOutlined,
+  GiftOutlined,
+  BarChartOutlined,
+  BulbOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   createNewSession,
   sendMessage,
@@ -41,6 +46,45 @@ import {
 
 const { Title, Text, Paragraph } = Typography;
 
+const TEMPLATES = [
+  {
+    id: "science",
+    icon: <ExperimentOutlined style={{ fontSize: 24, color: "#722ed1" }} />,
+    title: "理科原理可视化",
+    desc: "物理、化学、生物等理科知识的交互式演示网页，支持动画模拟",
+    color: "#f9f0ff",
+    borderColor: "#d3adf7",
+    prompt: "我想创建一个理科原理可视化应用，用于展示物理/化学/生物知识，需要交互式动画演示",
+  },
+  {
+    id: "utility",
+    icon: <GiftOutlined style={{ fontSize: 24, color: "#eb2f96" }} />,
+    title: "抽奖排课工具",
+    desc: "随机抽奖、自动排课、座位分配等实用小工具",
+    color: "#fff0f6",
+    borderColor: "#ffadd2",
+    prompt: "我想创建一个实用工具类应用，比如抽奖、排课、随机分配等功能",
+  },
+  {
+    id: "data",
+    icon: <BarChartOutlined style={{ fontSize: 24, color: "#13c2c2" }} />,
+    title: "AI数据分析",
+    desc: "数据上传清洗、AI智能分析、图表可视化报告生成",
+    color: "#e6fffb",
+    borderColor: "#87e8de",
+    prompt: "我想创建一个AI数据分析应用，可以上传数据文件，用AI进行分析并生成可视化报告",
+  },
+  {
+    id: "custom",
+    icon: <BulbOutlined style={{ fontSize: 24, color: "#fa8c16" }} />,
+    title: "自由创作",
+    desc: "描述你的想法，AI帮你实现任何符合规范的Streamlit应用",
+    color: "#fff7e6",
+    borderColor: "#ffd591",
+    prompt: "",
+  },
+];
+
 const STATUS_MAP: Record<string, { color: string; label: string }> = {
   chatting: { color: "blue", label: "对话中" },
   generating: { color: "processing", label: "生成中" },
@@ -52,6 +96,7 @@ const STATUS_MAP: Record<string, { color: string; label: string }> = {
 
 export default function CreateAppPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     const styleId = "create-app-animations";
@@ -110,6 +155,13 @@ export default function CreateAppPage() {
   }, []);
 
   useEffect(() => {
+    const promptParam = searchParams.get("prompt");
+    if (promptParam) {
+      setTimeout(() => handleNewChat(promptParam), 500);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     if (polling && currentId) {
       const timer = setInterval(async () => {
         try {
@@ -137,7 +189,7 @@ export default function CreateAppPage() {
     }
   };
 
-  const handleNewChat = async () => {
+  const handleNewChat = async (templatePrompt?: string) => {
     try {
       setLoading(true);
       const res = await createNewSession("新创作");
@@ -146,12 +198,20 @@ export default function CreateAppPage() {
       setStatus(res.data);
       setView("chat");
       message.success("已创建新的对话");
+
+      if (templatePrompt) {
+        setTimeout(() => handleSend(templatePrompt), 300);
+      }
     } catch (e: any) {
       message.error(e.response?.data?.detail || "创建失败");
     } finally {
       setLoading(false);
     }
   };
+
+  const handleNewChatClick = () => handleNewChat();
+
+  const handleTemplateClick = (template: typeof TEMPLATES[0]) => () => handleNewChat(template.prompt);
 
   const handleSend = async (text?: string) => {
     const msgText = text || inputValue.trim();
@@ -263,27 +323,80 @@ export default function CreateAppPage() {
         styles={{
           body: { flex: 1, display: "flex", flexDirection: "column", padding: 0, overflow: "hidden", minHeight: 0 },
         }}
-        extra={
-          status?.status === "chatting" && messages.length > 1 ? (
-            <Button type="primary" icon={<CheckCircleOutlined />} onClick={handleStartCreate}>
-              确认需求，开始创作
-            </Button>
-          ) : null
-        }
       >
         <div
           ref={messagesContainerRef}
           style={{ flex: 1, overflowY: "auto", padding: "16px 24px", background: "#fafafa" }}
         >
           {!currentId ? (
-            <Empty
-              description="点击「新建对话」开始与AI助手交流"
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            >
-              <Button type="primary" icon={<PlusOutlined />} onClick={handleNewChat}>
-                新建对话
-              </Button>
-            </Empty>
+            <div style={{ padding: "20px 0" }}>
+              <div style={{ textAlign: "center", marginBottom: 24 }}>
+                <RobotOutlined style={{ fontSize: 48, marginBottom: 12, color: "#165DFF" }} />
+                <Title level={4} style={{ marginBottom: 8 }}>AI 应用创作助手</Title>
+                <Text type="secondary">选择一个模板开始，或描述你的想法</Text>
+              </div>
+
+              <div style={{ 
+                display: "grid", 
+                gridTemplateColumns: "repeat(2, 1fr)", 
+                gap: 16,
+                maxWidth: 600,
+                margin: "0 auto",
+              }}>
+                {TEMPLATES.map((t) => (
+                  <div
+                    key={t.id}
+                    onClick={handleTemplateClick(t)}
+                    style={{
+                      padding: "16px 20px",
+                      borderRadius: 16,
+                      background: t.color,
+                      border: `2px solid ${t.borderColor}`,
+                      cursor: "pointer",
+                      transition: "all 0.3s ease",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 10,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "translateY(-4px)";
+                      e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.1)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "none";
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 12,
+                        background: "#fff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                      }}>
+                        {t.icon}
+                      </div>
+                      <Text strong style={{ fontSize: 15 }}>{t.title}</Text>
+                    </div>
+                    <Text type="secondary" style={{ fontSize: 13, lineHeight: 1.5 }}>{t.desc}</Text>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ textAlign: "center", marginTop: 20 }}>
+                <Button 
+                  type="link" 
+                  icon={<ReloadOutlined />}
+                  onClick={(e) => { e.stopPropagation(); handleNewChat(); }}
+                >
+                  换一批模板
+                </Button>
+              </div>
+            </div>
           ) : (
             <>
               {messages.length === 0 && (
@@ -539,7 +652,7 @@ export default function CreateAppPage() {
             <Input.TextArea
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="描述你想要创建的应用..."
+              placeholder="描述你想要创建的应用，或补充更多需求细节..."
               autoSize={{ minRows: 2, maxRows: 4 }}
               onPressEnter={(e) => {
                 if (!e.shiftKey) {
@@ -549,11 +662,28 @@ export default function CreateAppPage() {
               }}
               disabled={loading}
             />
-            <div style={{ marginTop: 8, display: "flex", justifyContent: "flex-end" }}>
+            <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <Button 
+                onClick={() => setView("history")}
+                icon={<HistoryOutlined />}
+              >
+                历史
+              </Button>
               <Space>
-                <Button onClick={() => setView("history")}>
-                  <HistoryOutlined /> 历史
-                </Button>
+                {messages.length > 0 && (
+                  <Button
+                    type="primary"
+                    icon={<CheckCircleOutlined />}
+                    onClick={handleStartCreate}
+                    style={{
+                      background: "linear-gradient(135deg, #52c41a 0%, #73d13d 100%)",
+                      borderColor: "#52c41a",
+                      boxShadow: "0 2px 8px rgba(82, 196, 26, 0.35)",
+                    }}
+                  >
+                    开始制作
+                  </Button>
+                )}
                 <Button
                   type="primary"
                   icon={<SendOutlined />}
@@ -581,7 +711,7 @@ export default function CreateAppPage() {
               title="创建失败"
               subTitle={status.error_message}
               extra={[
-                <Button key="retry" type="primary" onClick={handleNewChat}>
+                <Button key="retry" type="primary" onClick={handleNewChatClick}>
                   重试
                 </Button>,
               ]}
@@ -595,7 +725,7 @@ export default function CreateAppPage() {
                 <Button key="view" type="primary" icon={<LinkOutlined />} onClick={() => navigate(`/apps/${status.app_id}`)}>
                   查看应用
                 </Button>,
-                <Button key="new" icon={<PlusOutlined />} onClick={handleNewChat}>
+                <Button key="new" icon={<PlusOutlined />} onClick={handleNewChatClick}>
                   再创建一个
                 </Button>,
               ]}
@@ -727,7 +857,7 @@ export default function CreateAppPage() {
             >
               <HistoryOutlined /> 历史
             </Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleNewChat} loading={loading}>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleNewChatClick} loading={loading}>
               新建对话
             </Button>
           </Space>
