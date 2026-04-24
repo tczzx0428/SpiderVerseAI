@@ -45,6 +45,9 @@ services:
 
   # ─── FastAPI 后端 ────────────────────────────────────
   backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     image: tool-platform-backend:latest
     container_name: backend
     restart: unless-stopped
@@ -73,6 +76,9 @@ services:
 
   # ─── React 前端 ──────────────────────────────────────
   frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     image: tool-platform-frontend:latest
     container_name: frontend
     restart: unless-stopped
